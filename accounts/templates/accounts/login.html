@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Finanças Pessoais</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos personalizados que não podem ser expressos diretamente no Tailwind */
+        .finance-bg-circle {
+            filter: blur(80px);
+        }
+
+        /* Classes para simular o glassmorphism com a cor de fundo desejada */
+        .glass-container {
+            background-color: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .glass-section {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+        }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen bg-gradient-to-br from-indigo-500 to-blue-800 overflow-hidden relative text-white font-poppins">
+
+    <div class="finance-bg-circle absolute rounded-full bg-indigo-700 w-[300px] h-[300px] top-[10%] left-[5%] opacity-60"></div>
+    <div class="finance-bg-circle absolute rounded-full bg-cyan-500 w-[200px] h-[200px] top-[60%] left-[15%] opacity-60"></div>
+    <div class="finance-bg-circle absolute rounded-full bg-indigo-300 w-[250px] h-[250px] top-[30%] right-[10%] opacity-60"></div>
+    <div class="finance-bg-circle absolute rounded-full bg-emerald-500 w-[350px] h-[350px] bottom-[5%] right-[5%] opacity-60"></div>
+
+    <div class="finance-login-container flex w-[900px] max-w-[95%] min-h-[500px] rounded-2xl shadow-2xl border border-white/20 glass-container overflow-hidden">
+        
+        <div class="finance-welcome-section flex-1 flex flex-col items-center justify-center p-8 text-center glass-section">
+            <div class="finance-logo flex items-center gap-3 mb-8">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-10 h-10 stroke-white">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/>
+                </svg>
+                <h1 class="text-3xl font-semibold text-white">Finanças Pessoais</h1>
+            </div>
+            <h2 class="text-4xl font-semibold mb-4 text-white drop-shadow-lg">Bem-vindo de Volta</h2>
+            <p class="text-base mb-8 opacity-90">Controle suas finanças com segurança e facilidade</p>
+            <a href="{% url 'accounts:register' %}" class="bg-white/20 border border-white/30 text-white text-lg font-medium py-3 px-8 rounded-full mt-4 cursor-pointer transition-all duration-300 hover:bg-white/30 hover:-translate-y-0.5">
+                Criar nova conta
+            </a>
+        </div>
+
+        <div class="finance-login-section flex-1 flex flex-col items-center justify-center p-12 relative">
+            <h2 class="text-3xl font-semibold mb-8 text-white drop-shadow-lg">Faça Login</h2>
+            
+            {% if form.errors %}
+            <div class="bg-red-500/20 text-white border border-red-500/40 p-3 rounded-lg flex items-center gap-2 mb-4 text-sm w-full max-w-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/>
+                </svg>
+                <span>E-mail ou senha incorretos</span>
+            </div>
+            {% endif %}
+            
+            <form method="post" class="finance-login-form flex flex-col gap-6 w-full max-w-sm">
+                {% csrf_token %}
+                
+                <div class="finance-form-group">
+                    <label for="id_username" class="flex items-center gap-2 text-sm text-white/90 font-medium mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5 stroke-white/80">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <path d="M22 6l-10 7L2 6"/>
+                        </svg>
+                        E-mail
+                    </label>
+                    <input type="email" id="id_username" name="username" required class="w-full bg-white/10 border border-white/30 rounded-lg p-3 text-white text-base backdrop-blur-sm transition-all duration-300 placeholder:text-white/60 focus:outline-none focus:border-white/50 focus:shadow-sm" placeholder="seu@email.com">
+                </div>
+                
+                <div class="finance-form-group">
+                    <label for="id_password" class="flex items-center gap-2 text-sm text-white/90 font-medium mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5 stroke-white/80">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        Senha
+                    </label>
+                    <input type="password" id="id_password" name="password" required class="w-full bg-white/10 border border-white/30 rounded-lg p-3 text-white text-base backdrop-blur-sm transition-all duration-300 placeholder:text-white/60 focus:outline-none focus:border-white/50 focus:shadow-sm" placeholder="••••••••">
+                </div>
+                
+                <button type="submit" class="bg-emerald-500 text-white border-0 py-3 rounded-lg text-lg font-medium cursor-pointer transition-all duration-300 mt-4 shadow-lg hover:bg-emerald-600 hover:-translate-y-0.5">
+                    Acessar minha conta
+                </button>
+                
+                <div class="finance-login-footer flex justify-between w-full mt-6">
+                
+                    <a href="#" class="text-white/80 text-sm no-underline transition-colors duration-200 hover:text-white hover:underline">
+                        Esqueci minha senha
+                    </a>
+                </div>
+            </form>
+            
+            <div class="finance-currency-widget absolute bottom-8 right-8 bg-black/20 rounded-xl p-4 backdrop-blur-lg flex gap-6 border border-white/20 md:static md:mt-8 md:justify-center md:w-full">
+                <div class="currency-item flex flex-col items-center">
+                    <span class="text-xs text-white/70 font-medium">USD</span>
+                    <span class="text-base font-semibold text-white mt-1">5.20</span>
+                </div>
+                <div class="currency-item flex flex-col items-center">
+                    <span>EUR</span>
+                    <span class="text-base font-semibold text-white mt-1">5.60</span>
+                </div>
+                <div class="currency-item flex flex-col items-center">
+                    <span>BTC</span>
+                    <span class="text-base font-semibold text-white mt-1">320,450.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
