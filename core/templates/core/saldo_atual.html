@@ -1,0 +1,27 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Saldo Atual{% endblock %}
+
+{% block content %}
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Saldo Atual</h1>
+
+    <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Saldo Geral</h2>
+        <p class="text-4xl font-extrabold {% if saldo_geral >= 0 %}text-green-600{% else %}text-red-600{% endif %}">R$ {{ saldo_geral|floatformat:2 }}</p>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Saldo por Conta</h2>
+        {% if saldo_por_conta %}
+            <ul class="list-disc pl-5">
+                {% for conta, saldo in saldo_por_conta.items %}
+                    <li class="text-gray-700 text-lg mb-2">
+                        {{ conta }}: <span class="font-bold {% if saldo >= 0 %}text-green-600{% else %}text-red-600{% endif %}">R$ {{ saldo|floatformat:2 }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-gray-700">Nenhum saldo disponível por conta. Cadastre suas contas bancárias e transações.</p>
+        {% endif %}
+    </div>
+{% endblock %}

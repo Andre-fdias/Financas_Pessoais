@@ -1,0 +1,85 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Extrato Completo{% endblock %}
+
+{% block content %}
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Extrato Completo</h1>
+
+    {% if transacoes %}
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="min-w-full leading-normal">
+                <thead>
+                    <tr>
+                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
+                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nome</th> {# Renomeado de Descrição #}
+                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Valor</th>
+                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Conta</th>
+                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Local</th> {# Novo campo Local #}
+                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Categoria</th>
+                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Data</th>
+                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Recorrência</th>
+                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Parcelas</th>
+                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transacao in transacoes %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                {% if transacao.valor > 0 %} {# Supondo que Entrada tenha valor positivo, Saída negativo #}
+                                    <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
+                                        <span aria-hidden="true" class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
+                                        <span class="relative">Entrada</span>
+                                    </span>
+                                {% else %}
+                                    <span class="relative inline-block px-3 py-1 font-semibold text-red-900 leading-tight">
+                                        <span aria-hidden="true" class="absolute inset-0 bg-red-200 opacity-50 rounded-full"></span>
+                                        <span class="relative">Saída</span>
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                {# Acessa o campo 'nome' que substitui 'origem' ou 'produto_servico' #}
+                                {{ transacao.nome }}
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">R$ {{ transacao.valor|floatformat:2 }}</td>
+                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ transacao.conta_bancaria.get_codigo_banco_display }} - {{ transacao.conta_bancaria.numero_conta }}</td>
+                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ transacao.local|default:"N/A" }}</td>
+                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ transacao.categoria.nome|default:"N/A" }}</td>
+                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ transacao.data|date:"d/m/Y" }}</td>
+                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                {% if transacao.recorrente and transacao.recorrente != 'unica' %}
+                                    Sim ({{ transacao.get_recorrente_display }})
+                                {% else %}
+                                    Não
+                                {% endif %}
+                            </td>
+                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                {% if transacao.quantidade_parcelas and transacao.quantidade_parcelas > 1 %}
+                                    {{ transacao.quantidade_parcelas }}
+                                {% else %}
+                                    Única
+                                {% endif %}
+                            </td>
+                             <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                {% if transacao.situacao == 'pago' %}
+                                    <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
+                                        <span aria-hidden="true" class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
+                                        <span class="relative">Pago</span>
+                                    </span>
+                                {% else %}
+                                    <span class="relative inline-block px-3 py-1 font-semibold text-red-900 leading-tight">
+                                        <span aria-hidden="true" class="absolute inset-0 bg-red-200 opacity-50 rounded-full"></span>
+                                        <span class="relative">Pendente</span>
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-gray-700">Não há transações para exibir.</p>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white">Dashboard Financeiro</h1>
+        <div class="mt-4 md:mt-0 flex space-x-3">
+            <div class="relative">
+                <select class="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:text-white">
+                    <option>Últimos 30 dias</option>
+                    <option>Últimos 90 dias</option>
+                    <option>Este ano</option>
+                    <option>Personalizado</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+            </div>
+            <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                Exportar
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Saldo Geral -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Saldo Geral</h3>
+                        <p class="mt-1 text-3xl font-semibold {% if saldo_geral >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            R$ {{ saldo_geral|floatformat:2 }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Receitas do Mês -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Receitas do Mês</h3>
+                        <p class="mt-1 text-3xl font-semibold text-green-600">
+                            R$ {{ entradas_mes|floatformat:2 }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Despesas do Mês -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-red-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Despesas do Mês</h3>
+                        <p class="mt-1 text-3xl font-semibold text-red-600">
+                            R$ {{ saidas_mes|floatformat:2 }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico e Últimas Transações -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Gráfico (placeholder) -->
+        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-all duration-300 hover:shadow-lg">
+            <div class="p-6">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Resumo Mensal</h2>
+                <div class="h-64 bg-gray-100 dark:bg-gray-700 rounded-md flex items-center justify-center">
+                    <p class="text-gray-500 dark:text-gray-400">Gráfico de receitas e despesas</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categorias (placeholder) -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-all duration-300 hover:shadow-lg">
+            <div class="p-6">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Categorias</h2>
+                <div class="h-64 bg-gray-100 dark:bg-gray-700 rounded-md flex items-center justify-center">
+                    <p class="text-gray-500 dark:text-gray-400">Gráfico de categorias</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Últimas Transações -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-all duration-300 hover:shadow-lg mb-8">
+        <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">Últimas Transações</h2>
+            <a href="{% url 'core:extrato_completo' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
+                Ver todas
+            </a>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% if ultimas_transacoes %}
+                {% for transacao in ultimas_transacoes %}
+                <div class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            {% if transacao.valor > 0 %}
+                                <div class="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                                    <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                    </svg>
+                                </div>
+                            {% else %}
+                                <div class="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                                    <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                                    </svg>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    {{ transacao.nome }}
+                                </p>
+                                <p class="text-sm {% if transacao.valor > 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %} ml-2">
+                                    R$ {{ transacao.valor|floatformat:2 }}
+                                </p>
+                            </div>
+                            <div class="flex items-center justify-between mt-1">
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ transacao.data|date:"d/m/Y" }} • {{ transacao.local|default:"N/A" }}
+                                </p>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if transacao.valor > 0 %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                                    {% if transacao.valor > 0 %}Entrada{% else %}Saída{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="px-6 py-12 text-center">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Nenhuma transação recente</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Comece adicionando suas receitas e despesas.
+                    </p>
+                    <div class="mt-6">
+                        <a href="{% url 'core:entrada_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Nova Receita
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
