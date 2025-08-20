@@ -24,34 +24,45 @@ class CustomUserCreationForm(UserCreationForm):
 class ContaBancariaForm(forms.ModelForm):
     class Meta:
         model = ContaBancaria
-        fields = ['nome_banco', 'agencia', 'numero_conta', 'tipo', 'ativa', 'proprietario']
+        fields = ['nome_banco', 'tipo', 'agencia', 'numero_conta', 'saldo_atual', 
+                 'numero_cartao', 'limite_cartao', 'dia_fechamento_fatura', 
+                 'dia_vencimento_fatura', 'ativa']
+        widgets = {
+            'nome_banco': forms.Select(attrs={'class': 'form-input'}),
+            'tipo': forms.Select(attrs={'class': 'form-input'}),
+            'agencia': forms.TextInput(attrs={'class': 'form-input', 'placeholder': '0000'}),
+            'numero_conta': forms.TextInput(attrs={'class': 'form-input', 'placeholder': '00000-0'}),
+            'saldo_atual': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01', 'placeholder': '0,00'}),
+            'numero_cartao': forms.TextInput(attrs={'class': 'form-input', 'placeholder': '**** **** **** ****'}),
+            'limite_cartao': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.01', 'placeholder': '0,00'}),
+            'dia_fechamento_fatura': forms.NumberInput(attrs={'class': 'form-input', 'min': '1', 'max': '31', 'placeholder': '1-31'}),
+            'dia_vencimento_fatura': forms.NumberInput(attrs={'class': 'form-input', 'min': '1', 'max': '31', 'placeholder': '1-31'}),
+            'ativa': forms.CheckboxInput(attrs={'class': 'checkbox-input'}),
+        }
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Configura o queryset do proprietário
-        self.fields['proprietario'].queryset = User.objects.all()
-        if user:
-            self.fields['proprietario'].initial = user
-
-        # Torna os campos agencia e numero_conta não obrigatórios
-        self.fields['agencia'].required = False
-        self.fields['numero_conta'].required = False
-
-        # Verifica o tipo de conta selecionado
-        if 'tipo' in self.data:
-            tipo_conta = self.data.get('tipo')
-        elif self.instance.pk:
-            tipo_conta = self.instance.tipo
-        else:
-            tipo_conta = 'corrente'  # Valor padrão
-
-        # Esconde campos se não for conta corrente/poupança
-        if tipo_conta not in ['corrente', 'poupanca']:
-            del self.fields['agencia']
-            del self.fields['numero_conta']
-
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo = cleaned_data.get('tipo')
+        
+        # Validações específicas para contas bancárias
+        if tipo in ['corrente', 'poupanca']:
+            if not cleaned_data.get('agencia'):
+                self.add_error('agencia', 'Agência é obrigatória para este tipo de conta')
+            if not cleaned_data.get('numero_conta'):
+                self.add_error('numero_conta', 'Número da conta é obrigatório para este tipo de conta')
+        
+        # Validações específicas para cartão de crédito
+        if tipo == 'cartao_credito':
+            if not cleaned_data.get('limite_cartao'):
+                self.add_error('limite_cartao', 'Limite do cartão é obrigatório para cartões de crédito')
+        
+        return cleaned_data
+    
+    
 from django import forms
 from .models import Entrada, ContaBancaria
 from django.contrib.auth.models import User

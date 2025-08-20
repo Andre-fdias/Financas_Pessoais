@@ -2,54 +2,1536 @@
 
 {% block title %}Minhas Contas Bancárias{% endblock %}
 
+{% block extra_head %}
+    <!-- Tailwind CSS CDN (se não estiver já no base.html) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome para ícones (se não estiver já no base.html) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js CDN para gráficos (se não estiver já no base.html) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Estilos base do painel e outros elementos */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right, #ece9e6, #ffffff); /* Fundo suave */
+        }
+        .glass-panel {
+            background-color: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        @supports not (backdrop-filter: blur(16px)) {
+            .glass-panel {
+                background-color: rgba(255, 255, 255, 0.9);
+            }
+        }
+        
+        .chart-container {
+            height: 300px; /* Altura fixa para todos os containers de gráficos */
+            min-height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Ajustando as cores para o padrão do extrato_completo.html */
+        .valor-positivo {
+            background-color: #f0fdf4;
+            color: #166534;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+        
+        .valor-negativo {
+            background-color: #fef2f2;
+            color: #b91c1c; /* Cor original do extrato. Ajustado de #991b1b */
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+
+        /* Estilos para modo escuro, se aplicável, espelhando extrato_completo.html */
+        .dark .valor-positivo {
+            background-color: #052e16;
+            color: #bbf7d0;
+        }
+        
+        .dark .valor-negativo {
+            background-color: #450a0a;
+            color: #fca5a5;
+        }
+
+        /* Estilo para tabela de transações */
+        .table-striped tbody tr:nth-child(odd) {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Estilos do Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white; /* Alterado para branco sólido para melhor visualização */
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Estilos do Formulário dentro do Modal */
+        .form-container {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .form-input {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            width: 100%;
+        }
+        
+        .form-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            outline: none;
+            transform: translateY(-1px);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 0.95rem;
+        }
+        
+        .form-error {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 6px;
+            padding-left: 4px;
+            display: none; /* Controlado por JS */
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3), 0 2px 4px -1px rgba(99, 102, 241, 0.2);
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4), 0 4px 6px -2px rgba(99, 102, 241, 0.3);
+        }
+        
+        .cancel-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .cancel-btn:hover {
+            background-color: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-group {
+            position: relative;
+            margin-bottom: 1.25rem;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.5rem;
+            border-radius: 12px;
+            background-color: #f9fafb;
+            transition: all 0.3s ease;
+        }
+        
+        .checkbox-container:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .checkbox-input {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 2px solid #d1d5db;
+            appearance: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .checkbox-input:checked {
+            background-color: #6366f1;
+            border-color: #6366f1;
+        }
+        
+        .checkbox-input:checked::after {
+            content: "✓";
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .hidden-field {
+            display: none;
+        }
+        
+        .success-message {
+            display: none;
+            background-color: #10b981;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            text-align: center;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+        }
+    </style>
+{% endblock %}
+
 {% block content %}
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Minhas Contas Bancárias</h1>
+<div class="glass-panel min-h-screen p-8 flex flex-col space-y-6">
+    <!-- Cabeçalho e Botão -->
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Minhas Contas Bancárias</h1>
+        <button id="openContaModalBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg inline-flex items-center shadow-md hover:shadow-lg transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Adicionar
+        </button>
+    </div>
 
-    <a href="{% url 'core:conta_create' %}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-6 inline-block">Adicionar Nova Conta</a>
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Card Total -->
+        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-blue-500 dark:bg-gray-800">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Total de Contas</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ contas.count }}</p>
+                </div>
+                <div class="bg-blue-100 p-2 rounded-lg text-blue-600 dark:bg-blue-900 dark:text-blue-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <span class="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full dark:bg-blue-900 dark:text-blue-200">
+                    Todas as contas
+                </span>
+            </div>
+        </div>
 
-    {% if contas %}
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="min-w-full leading-normal">
-                <thead>
+        <!-- Card Ativas -->
+        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-green-500 dark:bg-gray-800">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Contas Ativas</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ contas_ativas }}</p>
+                </div>
+                <div class="bg-green-100 p-2 rounded-lg text-green-600 dark:bg-green-900 dark:text-green-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <span class="text-xs font-medium bg-green-100 text-green-800 px-2 py-1 rounded-full dark:bg-green-900 dark:text-green-200">
+                    {{ percentual_ativas }}% do total
+                </span>
+            </div>
+        </div>
+
+        <!-- Card Inativas -->
+        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-orange-500 dark:bg-gray-800">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Contas Inativas</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ contas_inativas }}</p>
+                </div>
+                <div class="bg-orange-100 p-2 rounded-lg text-orange-600 dark:bg-orange-900 dark:text-orange-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <span class="text-xs font-medium bg-orange-100 text-orange-800 px-2 py-1 rounded-full dark:bg-orange-900 dark:text-orange-200">
+                    {{ percentual_inativas }}% do total
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Painel de Filtros -->
+    <div class="bg-gray-100 rounded-xl shadow-lg p-6 my-8 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4 dark:text-white">Filtrar Contas</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Filtro por Tipo -->
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Tipo de Conta</label>
+                <div class="flex flex-wrap gap-2">
+                    <a href="?status={{ status_filtro }}"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                              {% if not tipo_filtro %}
+                                  bg-blue-600 text-white shadow
+                              {% else %}
+                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                              {% endif %}">
+                        Todos
+                    </a>
+                    {% for code, name in tipos_conta %}
+                    <a href="?tipo={{ code }}&status={{ status_filtro }}"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                              {% if tipo_filtro == code %}
+                                  bg-blue-600 text-white shadow
+                              {% else %}
+                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                              {% endif %}">
+                        {{ name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Filtro por Status -->
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Status</label>
+                <div class="flex flex-wrap gap-2">
+                    <a href="?tipo={{ tipo_filtro }}"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                              {% if not status_filtro %}
+                                  bg-blue-600 text-white shadow
+                              {% else %}
+                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                              {% endif %}">
+                        Todos
+                    </a>
+                    <a href="?tipo={{ tipo_filtro }}&status=ativa"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                              {% if status_filtro == 'ativa' %}
+                                  bg-green-600 text-white shadow
+                              {% else %}
+                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                              {% endif %}">
+                        Ativas
+                    </a>
+                    <a href="?tipo={{ tipo_filtro }}&status=inativa"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                              {% if status_filtro == 'inativa' %}
+                                  bg-orange-600 text-white shadow
+                              {% else %}
+                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                              {% endif %}">
+                        Inativas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Contas -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden dark:bg-gray-800">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-indigo-600 dark:bg-indigo-800">
                     <tr>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Banco</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Agência/Conta</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Proprietário</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100"></th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Banco</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Agência/Conta</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Tipo</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider">Ações</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                     {% for conta in contas %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ conta.get_nome_banco_display }}</td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ conta.agencia }}/{{ conta.numero_conta }}</td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ conta.proprietario.username }}</td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ conta.get_tipo_display }}</td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                {% if conta.ativa %}
-                                    <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
-                                        <span aria-hidden="true" class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
-                                        <span class="relative">Ativa</span>
-                                    </span>
-                                {% else %}
-                                    <span class="relative inline-block px-3 py-1 font-semibold text-red-900 leading-tight">
-                                        <span aria-hidden="true" class="absolute inset-0 bg-red-200 opacity-50 rounded-full"></span>
-                                        <span class="relative">Inativa</span>
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-right">
-                                <a href="{% url 'core:conta_update' conta.pk %}" class="text-blue-600 hover:text-blue-900 mr-3">Editar</a>
-                                <a href="{% url 'core:conta_delete' conta.pk %}" class="text-red-600 hover:text-red-900">Excluir</a>
-                            </td>
-                        </tr>
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center dark:bg-indigo-900">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ conta.get_nome_banco_display }}</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ conta.proprietario.username }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {% if conta.agencia and conta.numero_conta %}
+                                {{ conta.agencia }}/{{ conta.numero_conta }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {{ conta.get_tipo_display }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if conta.ativa %}
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    Ativa
+                                </span>
+                            {% else %}
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                    Inativa
+                                </span>
+                            {% endif %}
+                        </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex flex-col items-center justify-center space-y-2">
+                            <a href="#"
+                                class="text-blue-600 hover:text-blue-800 transition-colors flex items-center dark:text-blue-400 dark:hover:text-blue-300 edit-conta-btn"
+                                data-conta-id="{{ conta.pk }}"
+                                data-conta-banco="{{ conta.nome_banco }}"
+                                data-conta-tipo="{{ conta.tipo }}"
+                                data-conta-agencia="{{ conta.agencia|default:'' }}"
+                                data-conta-numero="{{ conta.numero_conta|default:'' }}"
+                                data-conta-saldo="{{ conta.saldo_atual }}"
+                                data-conta-numero-cartao="{{ conta.numero_cartao|default:'' }}"
+                                data-conta-limite="{{ conta.limite_cartao|default:'' }}"
+                                data-conta-fechamento="{{ conta.dia_fechamento_fatura|default:'' }}"
+                                data-conta-vencimento="{{ conta.dia_vencimento_fatura|default:'' }}"
+                                data-conta-ativa="{{ conta.ativa|yesno:'True,False' }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Editar
+                            </a>
+                            <button class="text-red-600 hover:text-red-800 transition-colors flex items-center dark:text-red-400 dark:hover:text-red-300 delete-conta-btn"
+                                data-conta-id="{{ conta.pk }}"
+                                data-conta-nome="{{ conta.get_nome_banco_display }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Excluir
+                            </button>
+                        </div>
+                    </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                            Nenhuma conta encontrada com os filtros selecionados
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    {% else %}
-        <p class="text-gray-700">Você ainda não tem contas bancárias cadastradas.</p>
-    {% endif %}
+    </div>
+</div>
+
+<!-- Modal Structure for Add Account -->
+<div id="contaModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="form-container w-full max-w-lg p-8">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Adicionar Conta Bancária</h2>
+                <button type="button" id="closeContaModalBtn" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <form method="post" id="contaFormModal" class="space-y-6" action="{% url 'core:conta_create' %}">
+                {% csrf_token %}
+                
+                <!-- Banco -->
+                <div class="input-group">
+                    <label for="id_nome_banco" class="form-label flex items-center">
+                        <i class="fas fa-landmark mr-2 text-blue-500"></i>
+                        Banco
+                    </label>
+                    <div class="relative">
+                        <select id="id_nome_banco" name="nome_banco" class="form-input">
+                            <option value="">Selecione um banco</option>
+                            {% for code, name in banco_choices %} {# ITERA SOBRE AS OPÇÕES PASSADAS DA VIEW #}
+                                <option value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <p class="form-error" id="nome_banco_error"></p>
+                </div>
+    
+                <!-- Tipo de Conta -->
+                <div class="input-group">
+                    <label for="id_tipo" class="form-label flex items-center">
+                        <i class="fas fa-credit-card mr-2 text-purple-500"></i>
+                        Tipo de Conta
+                    </label>
+                    <div class="relative">
+                        <select id="id_tipo" name="tipo" class="form-input">
+                            <option value="">Selecione o tipo</option>
+                            {% for code, name in tipos_conta %} {# AGORA USA O 'tipos_conta' CORRIGIDO DA VIEW #}
+                                <option value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <p class="form-error" id="tipo_error"></p>
+                </div>
+    
+                <!-- Agência -->
+                <div class="input-group hidden-field" id="agencia_group">
+                    <label for="id_agencia" class="form-label flex items-center">
+                        <i class="fas fa-building mr-2 text-indigo-500"></i>
+                        Agência
+                    </label>
+                    <input type="text" id="id_agencia" name="agencia" class="form-input" placeholder="0000">
+                    <p class="form-error" id="agencia_error"></p>
+                </div>
+    
+                <!-- Número da Conta -->
+                <div class="input-group hidden-field" id="numero_conta_group">
+                    <label for="id_numero_conta" class="form-label flex items-center">
+                        <i class="fas fa-hashtag mr-2 text-indigo-500"></i>
+                        Número da Conta
+                    </label>
+                    <input type="text" id="id_numero_conta" name="numero_conta" class="form-input" placeholder="00000-0">
+                    <p class="form-error" id="numero_conta_error"></p>
+                </div>
+    
+                <!-- Saldo Atual -->
+                <div class="input-group">
+                    <label for="id_saldo_atual" class="form-label flex items-center">
+                        <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+                        Saldo Atual
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">R$</span>
+                        </div>
+                        <input type="text" id="id_saldo_atual" name="saldo_atual" class="form-input pl-10" placeholder="0,00" value="0,00">
+                    </div>
+                    <p class="form-error" id="saldo_atual_error"></p>
+                </div>
+    
+                <!-- Campos específicos para cartão de crédito -->
+                <div class="hidden-field" id="cartao_fields">
+                    <div class="bg-blue-50 p-4 rounded-xl mb-4">
+                        <h3 class="text-lg font-semibold text-blue-800 flex items-center">
+                            <i class="fas fa-credit-card mr-2"></i> Informações do Cartão
+                        </h3>
+                    </div>
+    
+                    <!-- Número do Cartão -->
+                    <div class="input-group">
+                        <label for="id_numero_cartao" class="form-label flex items-center">
+                            <i class="fas fa-credit-card mr-2 text-blue-500"></i>
+                            Número do Cartão
+                        </label>
+                        <input type="text" id="id_numero_cartao" name="numero_cartao" class="form-input" placeholder="**** **** **** ****">
+                        <p class="form-error" id="numero_cartao_error"></p>
+                    </div>
+    
+                    <!-- Limite do Cartão -->
+                    <div class="input-group">
+                        <label for="id_limite_cartao" class="form-label flex items-center">
+                            <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+                            Limite do Cartão
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">R$</span>
+                            </div>
+                            <input type="text" id="id_limite_cartao" name="limite_cartao" class="form-input pl-10" placeholder="0,00" value="0,00">
+                        </div>
+                        <p class="form-error" id="limite_cartao_error"></p>
+                    </div>
+    
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Dia Fechamento Fatura -->
+                        <div class="input-group">
+                            <label for="id_dia_fechamento_fatura" class="form-label flex items-center">
+                                <i class="fas fa-calendar-alt mr-2 text-gray-500"></i>
+                                Fechamento Fatura
+                            </label>
+                            <input type="number" id="id_dia_fechamento_fatura" name="dia_fechamento_fatura" class="form-input" min="1" max="31" placeholder="1-31">
+                            <p class="form-error" id="dia_fechamento_fatura_error"></p>
+                        </div>
+                        
+                        <!-- Dia Vencimento Fatura -->
+                        <div class="input-group">
+                            <label for="id_dia_vencimento_fatura" class="form-label flex items-center">
+                                <i class="fas fa-calendar-check mr-2 text-gray-500"></i>
+                                Vencimento Fatura
+                            </label>
+                            <input type="number" id="id_dia_vencimento_fatura" name="dia_vencimento_fatura" class="form-input" min="1" max="31" placeholder="1-31">
+                            <p class="form-error" id="dia_vencimento_fatura_error"></p>
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- Status da Conta (Ativa/Inativa) -->
+                <div class="input-group">
+                    <label class="form-label">Status da Conta</label>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="id_ativa" name="ativa" class="checkbox-input" checked>
+                        <label for="id_ativa" class="text-gray-700">Conta Ativa</label>
+                    </div>
+                    <p class="form-error" id="ativa_error"></p>
+                </div>
+    
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="cancelBtn" class="cancel-btn px-6 py-3 border border-gray-300 rounded-xl text-gray-700 flex items-center transition-all hover:shadow-md">
+                        <i class="fas fa-times mr-2"></i>
+                        Cancelar
+                    </button>
+                    <button type="submit" id="saveBtn" class="submit-btn text-white font-medium py-2 px-4 rounded-lg inline-flex items-center">
+                        <i class="fas fa-save mr-2"></i>
+                        Salvar Conta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal para Edição -->
+<div id="editContaModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="form-container w-full max-w-lg p-8">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Editar Conta Bancária</h2>
+                <button type="button" id="closeEditContaModalBtn" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <form method="post" id="editContaFormModal" class="space-y-6" action="">
+                {% csrf_token %}
+                <input type="hidden" id="edit_conta_id" name="conta_id">
+                
+                <!-- Banco -->
+                <div class="input-group">
+                    <label for="edit_nome_banco" class="form-label flex items-center">
+                        <i class="fas fa-landmark mr-2 text-blue-500"></i>
+                        Banco
+                    </label>
+                    <div class="relative">
+                        <select id="edit_nome_banco" name="nome_banco" class="form-input">
+                            <option value="">Selecione um banco</option>
+                            {% for code, name in banco_choices %}
+                                <option value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <p class="form-error" id="edit_nome_banco_error"></p>
+                </div>
+
+                <!-- Tipo de Conta -->
+                <div class="input-group">
+                    <label for="edit_tipo" class="form-label flex items-center">
+                        <i class="fas fa-credit-card mr-2 text-purple-500"></i>
+                        Tipo de Conta
+                    </label>
+                    <div class="relative">
+                        <select id="edit_tipo" name="tipo" class="form-input">
+                            <option value="">Selecione o tipo</option>
+                            {% for code, name in tipos_conta %}
+                                <option value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <p class="form-error" id="edit_tipo_error"></p>
+                </div>
+    
+                <!-- Agência -->
+                <div class="input-group hidden-field" id="edit_agencia_group">
+                    <label for="edit_agencia" class="form-label flex items-center">
+                        <i class="fas fa-building mr-2 text-indigo-500"></i>
+                        Agência
+                    </label>
+                    <input type="text" id="edit_agencia" name="agencia" class="form-input" placeholder="0000">
+                    <p class="form-error" id="edit_agencia_error"></p>
+                </div>
+    
+                <!-- Número da Conta -->
+                <div class="input-group hidden-field" id="edit_numero_conta_group">
+                    <label for="edit_numero_conta" class="form-label flex items-center">
+                        <i class="fas fa-hashtag mr-2 text-indigo-500"></i>
+                        Número da Conta
+                    </label>
+                    <input type="text" id="edit_numero_conta" name="numero_conta" class="form-input" placeholder="00000-0">
+                    <p class="form-error" id="edit_numero_conta_error"></p>
+                </div>
+    
+                <!-- Saldo Atual -->
+                <div class="input-group">
+                    <label for="edit_saldo_atual" class="form-label flex items-center">
+                        <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+                        Saldo Atual
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">R$</span>
+                        </div>
+                        <input type="text" id="edit_saldo_atual" name="saldo_atual" class="form-input pl-10" placeholder="0,00" value="0,00">
+                    </div>
+                    <p class="form-error" id="edit_saldo_atual_error"></p>
+                </div>
+    
+                <!-- Campos específicos para cartão de crédito -->
+                <div class="hidden-field" id="edit_cartao_fields">
+                    <div class="bg-blue-50 p-4 rounded-xl mb-4">
+                        <h3 class="text-lg font-semibold text-blue-800 flex items-center">
+                            <i class="fas fa-credit-card mr-2"></i> Informações do Cartão
+                        </h3>
+                    </div>
+    
+                    <!-- Número do Cartão -->
+                    <div class="input-group">
+                        <label for="edit_numero_cartao" class="form-label flex items-center">
+                            <i class="fas fa-credit-card mr-2 text-blue-500"></i>
+                            Número do Cartão
+                        </label>
+                        <input type="text" id="edit_numero_cartao" name="numero_cartao" class="form-input" placeholder="**** **** **** ****">
+                        <p class="form-error" id="edit_numero_cartao_error"></p>
+                    </div>
+    
+                    <!-- Limite do Cartão -->
+                    <div class="input-group">
+                        <label for="edit_limite_cartao" class="form-label flex items-center">
+                            <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+                            Limite do Cartão
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">R$</span>
+                            </div>
+                            <input type="text" id="edit_limite_cartao" name="limite_cartao" class="form-input pl-10" placeholder="0,00" value="0,00">
+                        </div>
+                        <p class="form-error" id="edit_limite_cartao_error"></p>
+                    </div>
+    
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Dia Fechamento Fatura -->
+                        <div class="input-group">
+                            <label for="edit_dia_fechamento_fatura" class="form-label flex items-center">
+                                <i class="fas fa-calendar-alt mr-2 text-gray-500"></i>
+                                Fechamento Fatura
+                            </label>
+                            <input type="number" id="edit_dia_fechamento_fatura" name="dia_fechamento_fatura" class="form-input" min="1" max="31" placeholder="1-31">
+                            <p class="form-error" id="edit_dia_fechamento_fatura_error"></p>
+                        </div>
+                        
+                        <!-- Dia Vencimento Fatura -->
+                        <div class="input-group">
+                            <label for="edit_dia_vencimento_fatura" class="form-label flex items-center">
+                                <i class="fas fa-calendar-check mr-2 text-gray-500"></i>
+                                Vencimento Fatura
+                            </label>
+                            <input type="number" id="edit_dia_vencimento_fatura" name="dia_vencimento_fatura" class="form-input" min="1" max="31" placeholder="1-31">
+                            <p class="form-error" id="edit_dia_vencimento_fatura_error"></p>
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- Status da Conta (Ativa/Inativa) -->
+                <div class="input-group">
+                    <label class="form-label">Status da Conta</label>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="edit_ativa" name="ativa" class="checkbox-input" checked>
+                        <label for="edit_ativa" class="text-gray-700">Conta Ativa</label>
+                    </div>
+                    <p class="form-error" id="edit_ativa_error"></p>
+                </div>
+    
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="cancelEditBtn" class="cancel-btn px-6 py-3 border border-gray-300 rounded-xl text-gray-700 flex items-center transition-all hover:shadow-md">
+                        <i class="fas fa-times mr-2"></i>
+                        Cancelar
+                    </button>
+                    <button type="submit" id="updateBtn" class="submit-btn text-white font-medium py-2 px-4 rounded-lg inline-flex items-center">
+                        <i class="fas fa-save mr-2"></i>
+                        Atualizar Conta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Modal para Exclusão -->
+<div id="deleteContaModal" class="modal-overlay hidden">
+    <div class="modal-content max-w-md">
+        <div class="bg-white p-6 rounded-lg shadow-xl">
+            <div class="text-center mb-6">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mt-4" id="deleteModalTitle">Confirmar Exclusão</h3>
+                <p class="text-sm text-gray-500 mt-2" id="deleteModalMessage">Tem certeza de que deseja excluir esta conta bancária?</p>
+            </div>
+            
+            <div class="flex justify-center space-x-4">
+                <button type="button" id="cancelDeleteBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">
+                    Cancelar
+                </button>
+                <form id="deleteContaForm" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">
+                        Excluir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="success-message" id="successMessage">
+    <i class="fas fa-check-circle mr-2"></i>
+    Conta adicionada com sucesso!
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Obtenha os elementos do DOM para o modal de adição
+        const openContaModalBtn = document.getElementById('openContaModalBtn');
+        const contaModal = document.getElementById('contaModal');
+        const closeContaModalBtn = document.getElementById('closeContaModalBtn');
+        const contaFormModal = document.getElementById('contaFormModal');
+        const successMessage = document.getElementById('successMessage');
+
+        // Campos do formulário de adição que alternam visibilidade
+        const tipoContaSelect = document.getElementById('id_tipo');
+        const agenciaGroup = document.getElementById('agencia_group');
+        const numeroContaGroup = document.getElementById('numero_conta_group');
+        const cartaoFields = document.getElementById('cartao_fields');
+        const saldoInput = document.getElementById('id_saldo_atual');
+        const limiteInput = document.getElementById('id_limite_cartao');
+
+        // Obtenha os elementos do DOM para o modal de edição
+        const editContaModal = document.getElementById('editContaModal');
+        const closeEditContaModalBtn = document.getElementById('closeEditContaModalBtn');
+        const editContaFormModal = document.getElementById('editContaFormModal');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+        // Campos do formulário de edição que alternam visibilidade
+        const editTipoContaSelect = document.getElementById('edit_tipo');
+        const editAgenciaGroup = document.getElementById('edit_agencia_group');
+        const editNumeroContaGroup = document.getElementById('edit_numero_conta_group');
+        const editCartaoFields = document.getElementById('edit_cartao_fields');
+        const editSaldoInput = document.getElementById('edit_saldo_atual');
+        const editLimiteInput = document.getElementById('edit_limite_cartao');
+
+        // --- Funções Comuns para Modais ---
+
+        // Função para mostrar um modal genérico
+        function showGenericModal(modalElement) {
+            modalElement.classList.remove('hidden');
+            setTimeout(() => modalElement.classList.add('show'), 10);
+            document.body.style.overflow = 'hidden'; // Evita a rolagem da página
+        }
+
+        // Função para esconder um modal genérico
+        function hideGenericModal(modalElement, clearFormFunc) {
+            modalElement.classList.remove('show');
+            setTimeout(() => {
+                modalElement.classList.add('hidden');
+                if (clearFormFunc) clearFormFunc(); // Limpa o formulário e erros se fornecido
+            }, 300);
+            document.body.style.overflow = ''; // Restaura a rolagem da página
+        }
+
+        // Função para mostrar mensagem de sucesso
+        function showSuccessMessage(message) {
+            const tempSuccessMessage = document.createElement('div');
+            tempSuccessMessage.className = 'success-message fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            tempSuccessMessage.innerHTML = `<i class="fas fa-check-circle mr-2"></i> ${message}`;
+            document.body.appendChild(tempSuccessMessage);
+            
+            setTimeout(() => {
+                tempSuccessMessage.remove();
+            }, 3000);
+        }
+
+        // Função para exibir erros do formulário
+        function displayFormErrors(form, errors) {
+            console.log('Erros recebidos:', errors);
+            
+            // Limpa erros anteriores
+            const existingErrors = form.querySelectorAll('.form-error');
+            existingErrors.forEach(error => {
+                error.textContent = '';
+                error.style.display = 'none';
+                const inputField = form.querySelector(`#id_${error.id.replace('_error', '')}`) || form.querySelector(`#edit_${error.id.replace('_error', '')}`);
+                if (inputField) {
+                    inputField.classList.remove('border-red-500');
+                }
+            });
+            
+            const nonFieldErrorsContainer = form.querySelector('.non-field-errors-container');
+            if (nonFieldErrorsContainer) nonFieldErrorsContainer.remove();
+            
+            // Exibe novos erros
+            for (const field in errors) {
+                console.log('Campo com erro:', field, 'Erro:', errors[field]);
+                if (field === '__all__') {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'non-field-errors-container bg-red-50 border-l-4 border-red-500 p-4 dark:bg-red-900/20 dark:border-red-700 mb-4';
+                    errorDiv.innerHTML = `
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-500 dark:text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-red-700 dark:text-red-300">${errors[field][0]}</p>
+                            </div>
+                        </div>
+                    `;
+                    form.prepend(errorDiv);
+                } else {
+                    const errorElement = form.querySelector(`#${field}_error`) || form.querySelector(`#edit_${field}_error`);
+                    if (errorElement) {
+                        errorElement.textContent = errors[field][0];
+                        errorElement.style.display = 'block';
+                        
+                        const inputField = form.querySelector(`#id_${field}`) || form.querySelector(`#edit_${field}`);
+                        if (inputField) {
+                            inputField.classList.add('border-red-500');
+                        }
+                    }
+                }
+            }
+        }
+
+        // Função para obter o token CSRF dos cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        
+        // Função para formatar campos monetários com máscara brasileira
+        function formatarMoeda(input) {
+            if (!input) return;
+            
+            // Guarda a posição do cursor
+            const cursorPosition = input.selectionStart;
+            
+            // Remove tudo que não é dígito
+            let value = input.value.replace(/\D/g, '');
+            
+            // Se estiver vazio, define como zero
+            if (value === '') {
+                input.value = '0,00';
+                return;
+            }
+            
+            // Adiciona zeros à esquerda para ter pelo menos 3 dígitos (para centavos)
+            value = value.padStart(3, '0');
+            
+            // Separa reais e centavos
+            const reais = value.slice(0, -2);
+            const centavos = value.slice(-2);
+            
+            // Formata os reais com separadores de milhar
+            const formattedReais = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            
+            // Atualiza o valor do campo
+            input.value = formattedReais + ',' + centavos;
+            
+            // Restaura a posição do cursor, ajustando para a nova formatação
+            // Isso é complexo, então vamos reposicionar no final por enquanto
+            setTimeout(() => {
+                input.setSelectionRange(input.value.length, input.value.length);
+            }, 0);
+        }
+
+        // Função alternativa mais robusta para formatação monetária
+        function formatarMoedaMelhorada(input) {
+            if (!input) return;
+            
+            // Guarda a posição do cursor
+            const cursorPosition = input.selectionStart;
+            const originalLength = input.value.length;
+            
+            // Remove tudo que não é dígito
+            let value = input.value.replace(/\D/g, '');
+            
+            // Se estiver vazio, define como zero
+            if (value === '' || value === '0') {
+                input.value = '0,00';
+                input.setSelectionRange(4, 4); // Posiciona após "0,00"
+                return;
+            }
+            
+            // Remove zeros à esquerda
+            value = value.replace(/^0+/, '');
+            if (value === '') {
+                input.value = '0,00';
+                input.setSelectionRange(4, 4);
+                return;
+            }
+            
+            // Adiciona zeros à esquerda para ter pelo menos 3 dígitos
+            value = value.padStart(3, '0');
+            
+            // Separa reais e centavos
+            const reais = value.slice(0, -2);
+            const centavos = value.slice(-2);
+            
+            // Formata os reais com separadores de milhar
+            const formattedReais = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            
+            // Atualiza o valor do campo
+            input.value = formattedReais + ',' + centavos;
+            
+            // Tenta manter a posição do cursor de forma inteligente
+            const newLength = input.value.length;
+            const lengthDifference = newLength - originalLength;
+            
+            // Posiciona o cursor no final por enquanto (solução mais simples)
+            setTimeout(() => {
+                input.setSelectionRange(newLength, newLength);
+            }, 0);
+        }
+
+        // Função para converter formato brasileiro para decimal (para envio ao backend)
+            function converterParaDecimal(valor) {
+                if (typeof valor !== 'string') return valor;
+                
+                // Remove R$, pontos e converte vírgula para ponto
+                let decimalValue = valor.replace('R$', '')
+                                    .replace(/\./g, '')
+                                    .replace(',', '.')
+                                    .trim();
+                
+                // Garante que é um número válido
+                if (decimalValue === '' || isNaN(parseFloat(decimalValue))) {
+                    return '0.00';
+                }
+                
+                // Formata para 2 casas decimais
+                return parseFloat(decimalValue).toFixed(2);
+            }
+
+    
+            // Modal de Exclusão
+            const deleteContaModal = document.getElementById('deleteContaModal');
+            const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+            const deleteContaForm = document.getElementById('deleteContaForm');
+            const deleteModalTitle = document.getElementById('deleteModalTitle');
+            const deleteModalMessage = document.getElementById('deleteModalMessage');
+
+            // Função para mostrar o modal de exclusão
+            function showDeleteModal(contaId, contaNome) {
+                deleteModalTitle.textContent = 'Confirmar Exclusão';
+                deleteModalMessage.textContent = `Tem certeza de que deseja excluir a conta "${contaNome}"? Esta ação não pode ser desfeita.`;
+                deleteContaForm.action = `/contas/${contaId}/excluir/`;
+                showGenericModal(deleteContaModal);
+            }
+
+            // Event listeners para botões de exclusão
+            document.querySelectorAll('.delete-conta-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const contaId = this.getAttribute('data-conta-id');
+                    const contaNome = this.getAttribute('data-conta-nome');
+                    showDeleteModal(contaId, contaNome);
+                });
+            });
+
+            // Fechar modal de exclusão
+            if (cancelDeleteBtn) {
+                cancelDeleteBtn.addEventListener('click', () => hideGenericModal(deleteContaModal));
+            }
+
+            if (deleteContaModal) {
+                deleteContaModal.addEventListener('click', function(e) {
+                    if (e.target === deleteContaModal) {
+                        hideGenericModal(deleteContaModal);
+                    }
+                });
+            }
+
+            // Envio do formulário de exclusão via AJAX
+            if (deleteContaForm) {
+                deleteContaForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const submitBtn = deleteContaForm.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Excluindo...';
+                    
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: new FormData(this),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                        throw new Error('Erro na exclusão');
+                    })
+                    .then(data => {
+                        hideGenericModal(deleteContaModal);
+                        if (data.success) {
+                            showSuccessMessage('Conta excluída com sucesso!');
+                            // Recarregar a página após um breve delay
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            showErrorModal('Erro ao excluir a conta. Tente novamente.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro:', error);
+                        hideGenericModal(deleteContaModal);
+                        showErrorModal('Erro ao excluir a conta. Tente novamente.');
+                    })
+                    .finally(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    });
+                });
+            }
+
+            // Função para mostrar mensagem de erro (adicione esta função se não existir)
+            function showErrorModal(message) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                errorDiv.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i> ${message}`;
+                document.body.appendChild(errorDiv);
+                
+                setTimeout(() => {
+                    errorDiv.remove();
+                }, 3000);
+            }
+        // Função para limpar o formulário de adição e mensagens de erro
+        function clearAddFormAndErrors() {
+            contaFormModal.reset();
+            const errorElements = contaFormModal.querySelectorAll('.form-error');
+            errorElements.forEach(el => {
+                el.textContent = '';
+                el.style.display = 'none';
+            });
+            const nonFieldErrors = contaFormModal.querySelector('.non-field-errors-container');
+            if (nonFieldErrors) nonFieldErrors.remove();
+            toggleCamposEspecificosAdd(); // Redefine a visibilidade dos campos
+            formatarMoeda(saldoInput); // Reaplica a formatação inicial
+            formatarMoeda(limiteInput); // Reaplica a formatação inicial
+        }
+
+        // Função para focar e selecionar todo o texto quando o campo monetário recebe foco
+            function configurarFocoMonetario(input) {
+                if (!input) return;
+                
+                input.addEventListener('focus', function() {
+                    // Se o valor for "0,00", seleciona tudo para facilitar a digitação
+                    if (this.value === '0,00') {
+                        this.setSelectionRange(0, this.value.length);
+                    }
+                });
+                
+                input.addEventListener('blur', function() {
+                    // Garante que o valor está formatado corretamente ao perder o foco
+                    formatarMoedaMelhorada(this);
+                });
+            }
+
+            // Aplica a configuração de foco para todos os campos monetários
+            configurarFocoMonetario(saldoInput);
+            configurarFocoMonetario(limiteInput);
+            configurarFocoMonetario(editSaldoInput);
+            configurarFocoMonetario(editLimiteInput);
+
+        // Função para alternar a visibilidade de campos específicos no modal de adição
+        function toggleCamposEspecificosAdd() {
+            if (!tipoContaSelect) return;
+            const selectedType = tipoContaSelect.value;
+            agenciaGroup.classList.add('hidden-field');
+            numeroContaGroup.classList.add('hidden-field');
+            cartaoFields.classList.add('hidden-field');
+            
+            if (selectedType === 'corrente' || selectedType === 'poupanca') {
+                agenciaGroup.classList.remove('hidden-field');
+                numeroContaGroup.classList.remove('hidden-field');
+            }
+            if (selectedType === 'credito') {
+                cartaoFields.classList.remove('hidden-field');
+            }
+        }
+        
+        // Event listeners para o modal de adição
+        if (openContaModalBtn) {
+            openContaModalBtn.addEventListener('click', () => showGenericModal(contaModal));
+        }
+        if (closeContaModalBtn) {
+            closeContaModalBtn.addEventListener('click', () => hideGenericModal(contaModal, clearAddFormAndErrors));
+        }
+        if (contaModal) {
+            contaModal.addEventListener('click', function(e) {
+                if (e.target === contaModal) {
+                    hideGenericModal(contaModal, clearAddFormAndErrors);
+                }
+            });
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && contaModal.classList.contains('show')) {
+                hideGenericModal(contaModal, clearAddFormAndErrors);
+            }
+        });
+
+        // Aplica a formatação monetária ao carregar e digitar para saldo_atual e limite_cartao no modal de adição
+        // Aplica a formatação monetária ao carregar e digitar para saldo_atual e limite_cartao no modal de adição
+        if (saldoInput) {
+            saldoInput.addEventListener('input', () => formatarMoedaMelhorada(saldoInput));
+            // Formatação inicial
+            saldoInput.value = '0,00';
+            saldoInput.setSelectionRange(4, 4); // Posiciona o cursor após "0,00"
+        }
+        if (limiteInput) {
+            limiteInput.addEventListener('input', () => formatarMoedaMelhorada(limiteInput));
+            limiteInput.value = '0,00';
+            limiteInput.setSelectionRange(4, 4);
+        }
+
+        // Aplica a formatação monetária ao carregar e digitar para saldo_atual e limite_cartao no modal de edição
+        if (editSaldoInput) {
+            editSaldoInput.addEventListener('input', () => formatarMoedaMelhorada(editSaldoInput));
+        }
+        if (editLimiteInput) {
+            editLimiteInput.addEventListener('input', () => formatarMoedaMelhorada(editLimiteInput));
+        }
+
+        // Executa ao carregar a página e adiciona o listener de mudança para o modal de adição
+        toggleCamposEspecificosAdd();
+        if (tipoContaSelect) {
+            tipoContaSelect.addEventListener('change', toggleCamposEspecificosAdd);
+        }
+
+        // Lida com o envio do formulário de adição via AJAX
+        if (contaFormModal) {
+            contaFormModal.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const submitBtn = contaFormModal.querySelector('#saveBtn');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Salvando...';
+
+                const formData = new FormData(contaFormModal);
+                formData.set('saldo_atual', converterParaDecimal(saldoInput.value));
+                if (limiteInput && limiteInput.value) {
+                    formData.set('limite_cartao', converterParaDecimal(limiteInput.value));
+                }
+                
+                fetch(contaFormModal.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    return response.json().then(errorData => {
+                        throw errorData;
+                    });
+                })
+                .then(data => {
+                    if (data.success) {
+                        hideGenericModal(contaModal, clearAddFormAndErrors);
+                        showSuccessMessage('Conta adicionada com sucesso!');
+                        setTimeout(() => window.location.reload(), 2000); 
+                    } else {
+                        displayFormErrors(contaFormModal, data.errors);
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Salvar Conta';
+                        // Restore original values to currency inputs after displaying errors
+                        formatarMoeda(saldoInput);
+                        formatarMoeda(limiteInput);
+                    }
+                })
+                .catch(errors => {
+                    console.error('Erro:', errors);
+                    displayFormErrors(contaFormModal, errors);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Salvar Conta';
+                    // Restore original values to currency inputs after displaying errors
+                    formatarMoeda(saldoInput);
+                    formatarMoeda(limiteInput);
+                });
+            });
+        }
+
+        // --- Lógica para o Modal de Edição (editContaModal) ---
+
+        // Função para preencher o modal de edição com os dados da conta
+        function preencherModalEdicao(contaData) {
+            document.getElementById('edit_conta_id').value = contaData.id;
+            document.getElementById('edit_nome_banco').value = contaData.banco;
+            document.getElementById('edit_tipo').value = contaData.tipo;
+            document.getElementById('edit_agencia').value = contaData.agencia;
+            document.getElementById('edit_numero_conta').value = contaData.numero;
+            
+            const saldoValue = parseFloat(contaData.saldo);
+            document.getElementById('edit_saldo_atual').value = saldoValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            
+            document.getElementById('edit_numero_cartao').value = contaData.numeroCartao;
+            
+            if (contaData.limite) {
+                const limiteValue = parseFloat(contaData.limite);
+                document.getElementById('edit_limite_cartao').value = limiteValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            } else {
+                document.getElementById('edit_limite_cartao').value = '0,00';
+            }
+            
+            document.getElementById('edit_dia_fechamento_fatura').value = contaData.fechamento;
+            document.getElementById('edit_dia_vencimento_fatura').value = contaData.vencimento;
+            document.getElementById('edit_ativa').checked = (contaData.ativa === 'True' || contaData.ativa === true);
+            
+            // Define a action do formulário para a URL de edição correta
+            editContaFormModal.action = `/contas/${contaData.id}/editar/`;
+
+            toggleCamposEspecificosEdicao();
+            // Dispara a formatação inicial para os campos monetários no modal de edição
+            formatarMoeda(editSaldoInput); 
+            formatarMoeda(editLimiteInput);
+        }
+
+        // Função para limpar o formulário de edição e mensagens de erro
+        function clearEditFormAndErrors() {
+            editContaFormModal.reset();
+            const errorElements = editContaFormModal.querySelectorAll('.form-error');
+            errorElements.forEach(el => {
+                el.textContent = '';
+                el.style.display = 'none';
+            });
+            const nonFieldErrors = editContaFormModal.querySelector('.non-field-errors-container');
+            if (nonFieldErrors) nonFieldErrors.remove();
+            toggleCamposEspecificosEdicao(); // Redefine a visibilidade dos campos
+            formatarMoeda(editSaldoInput); // Reaplica a formatação inicial
+            formatarMoeda(editLimiteInput); // Reaplica a formatação inicial
+        }
+
+        // Função para alternar a visibilidade de campos específicos no modal de edição
+        function toggleCamposEspecificosEdicao() {
+            if (!editTipoContaSelect) return;
+            const selectedType = editTipoContaSelect.value;
+            editAgenciaGroup.classList.add('hidden-field');
+            editNumeroContaGroup.classList.add('hidden-field');
+            editCartaoFields.classList.add('hidden-field');
+            
+            if (selectedType === 'corrente' || selectedType === 'poupanca') {
+                editAgenciaGroup.classList.remove('hidden-field');
+                editNumeroContaGroup.classList.remove('hidden-field');
+            }
+            if (selectedType === 'credito') {
+                editCartaoFields.classList.remove('hidden-field');
+            }
+        }
+
+        // Event listeners para o modal de edição
+        document.querySelectorAll('.edit-conta-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const contaData = {
+                    id: this.getAttribute('data-conta-id'),
+                    banco: this.getAttribute('data-conta-banco'),
+                    tipo: this.getAttribute('data-conta-tipo'),
+                    agencia: this.getAttribute('data-conta-agencia'),
+                    numero: this.getAttribute('data-conta-numero'),
+                    saldo: this.getAttribute('data-conta-saldo'),
+                    numeroCartao: this.getAttribute('data-conta-numero-cartao'),
+                    limite: this.getAttribute('data-conta-limite'),
+                    fechamento: this.getAttribute('data-conta-fechamento'),
+                    vencimento: this.getAttribute('data-conta-vencimento'),
+                    ativa: this.getAttribute('data-conta-ativa')
+                };
+                preencherModalEdicao(contaData);
+                showGenericModal(editContaModal);
+            });
+        });
+
+        if (closeEditContaModalBtn) {
+            closeEditContaModalBtn.addEventListener('click', () => hideGenericModal(editContaModal, clearEditFormAndErrors));
+        }
+        if (cancelEditBtn) {
+            cancelEditBtn.addEventListener('click', () => hideGenericModal(editContaModal, clearEditFormAndErrors));
+        }
+        if (editContaModal) {
+            editContaModal.addEventListener('click', function(e) {
+                if (e.target === editContaModal) {
+                    hideGenericModal(editContaModal, clearEditFormAndErrors);
+                }
+            });
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && editContaModal.classList.contains('show')) {
+                hideGenericModal(editContaModal, clearEditFormAndErrors);
+            }
+        });
+
+        // Aplica a formatação monetária ao carregar e digitar para saldo_atual e limite_cartao no modal de edição
+        if (editSaldoInput) {
+            editSaldoInput.addEventListener('input', () => formatarMoeda(editSaldoInput));
+            formatarMoeda(editSaldoInput); // Initial format
+        }
+        if (editLimiteInput) {
+            editLimiteInput.addEventListener('input', () => formatarMoeda(editLimiteInput));
+            formatarMoeda(editLimiteInput); // Initial format
+        }
+
+        // Event listener para mudança no tipo de conta no modal de edição
+        if (editTipoContaSelect) {
+            editTipoContaSelect.addEventListener('change', toggleCamposEspecificosEdicao);
+        }
+
+        // Lida com o envio do formulário de edição via AJAX
+        if (editContaFormModal) {
+            editContaFormModal.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const submitBtn = editContaFormModal.querySelector('#updateBtn');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Atualizando...';
+
+                const formData = new FormData(editContaFormModal);
+                formData.set('saldo_atual', converterParaDecimal(editSaldoInput.value));
+                if (editLimiteInput && editLimiteInput.value) {
+                    formData.set('limite_cartao', converterParaDecimal(editLimiteInput.value));
+                }
+                formData.set('ativa', document.getElementById('edit_ativa').checked); // Ensure checkbox value is sent
+
+                const contaId = document.getElementById('edit_conta_id').value;
+                const url = `/contas/${contaId}/editar/`; // Use a URL de edição
+
+                fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    return response.json().then(errorData => {
+                        throw errorData;
+                    });
+                })
+                .then(data => {
+                    if (data.success) {
+                        hideGenericModal(editContaModal, clearEditFormAndErrors);
+                        showSuccessMessage('Conta atualizada com sucesso!');
+                        setTimeout(() => window.location.reload(), 2000);
+                    } else {
+                        displayFormErrors(editContaFormModal, data.errors);
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Atualizar Conta';
+                        // Restore original values to currency inputs after displaying errors
+                        formatarMoeda(editSaldoInput);
+                        formatarMoeda(editLimiteInput);
+                    }
+                })
+                .catch(errors => {
+                    console.error('Erro:', errors);
+                    displayFormErrors(editContaFormModal, errors);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Atualizar Conta';
+                    // Restore original values to currency inputs after displaying errors
+                    formatarMoeda(editSaldoInput);
+                    formatarMoeda(editLimiteInput);
+                });
+            });
+        }
+    });
+</script>
 {% endblock %}

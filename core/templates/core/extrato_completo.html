@@ -1,67 +1,322 @@
 {% extends 'core/base.html' %}
+{% load currency_filters %}
 
-{% block title %}Extrato Completo{% endblock %}
+{% block title %}Extrato Completo - {{ mes_atual_nome }} {{ ano_atual }}{% endblock %}
+
+
+{% block extra_head %}
+    <!-- Tailwind CSS CDN (se não estiver já no base.html) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome para ícones (se não estiver já no base.html) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js CDN (se não estiver já no base.html) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Estilos base do painel e outros elementos */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right, #ece9e6, #ffffff); /* Fundo suave */
+        }
+        .glass-panel {
+            background-color: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        @supports not (backdrop-filter: blur(16px)) {
+            .glass-panel {
+                background-color: rgba(255, 255, 255, 0.9);
+            }
+        }
+        
+        .chart-container {
+            height: 300px; /* Altura fixa para todos os containers de gráficos */
+            min-height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Ajustando as cores para o padrão do extrato_completo.html */
+        .valor-positivo {
+            background-color: #f0fdf4;
+            color: #166534;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+        
+        .valor-negativo {
+            background-color: #fef2f2;
+            color: #b91c1c; /* Cor original do extrato. Ajustado de #991b1b */
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+
+        /* Estilos para modo escuro, se aplicável, espelhando extrato_completo.html */
+        .dark .valor-positivo {
+            background-color: #052e16;
+            color: #bbf7d0;
+        }
+        
+        .dark .valor-negativo {
+            background-color: #450a0a;
+            color: #fca5a5;
+        }
+
+        /* Estilo para tabela de transações */
+        .table-striped tbody tr:nth-child(odd) {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+{% endblock %}
 
 {% block content %}
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Extrato Completo</h1>
+<div class="glass-panel min-h-screen p-8 flex flex-col space-y-6">
+    <!-- Cabeçalho -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Extrato Completo</h1>
+            <h2 class="text-xl text-gray-600 dark:text-gray-300">{{ mes_atual_nome }} {{ ano_atual }}</h2>
+        </div>
+    </div>
 
-    {% if transacoes %}
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="min-w-full leading-normal">
-                <thead>
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Card Entradas -->
+        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-green-500 dark:bg-gray-800">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Total de Entradas</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ total_entradas|floatformat:2 }}</p>
+                </div>
+                <div class="bg-green-100 p-2 rounded-lg text-green-600 dark:bg-green-900 dark:text-green-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Saídas -->
+        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-red-500 dark:bg-gray-800">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Total de Saídas</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ total_saidas|floatformat:2 }}</p>
+                </div>
+                <div class="bg-red-100 p-2 rounded-lg text-red-600 dark:bg-red-900 dark:text-red-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Saldo -->
+        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-blue-500 dark:bg-gray-800">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Saldo do Mês</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ saldo_mes|floatformat:2 }}</p>
+                </div>
+                <div class="bg-blue-100 p-2 rounded-lg text-blue-600 dark:bg-blue-900 dark:text-blue-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center">
+                <span class="text-xs font-medium {% if variacao_mensal >= 0 %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %} px-2 py-1 rounded-full">
+                    {{ variacao_mensal }}% vs mês anterior
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Painel de Filtros -->
+    <div class="bg-gray-100 rounded-xl shadow-lg p-6 my-8 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4 dark:text-white">Filtrar Extrato</h2>
+        
+        <!-- Linha 1: Ano e Tipo -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Filtro Ano -->
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Ano</label>
+                <div class="flex flex-wrap gap-2">
+                    {% for ano in anos_disponiveis %}
+                    <a href="?ano={{ ano }}&mes={{ mes_selecionado }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                              {% if ano == ano_selecionado %}
+                                  bg-blue-600 text-white shadow
+                              {% else %}
+                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                              {% endif %}">
+                        {{ ano }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Filtro Tipo -->
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Tipo de Transação</label>
+                <div class="flex flex-wrap gap-2">
+                    <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                              {% if not tipo_filtro %}
+                                  bg-blue-600 text-white shadow
+                              {% else %}
+                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                              {% endif %}">
+                        Todas
+                    </a>
+                    <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}&tipo=entrada"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                              {% if tipo_filtro == 'entrada' %}
+                                  bg-green-600 text-white shadow
+                              {% else %}
+                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                              {% endif %}">
+                        Entradas
+                    </a>
+                    <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}&tipo=saida"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                              {% if tipo_filtro == 'saida' %}
+                                  bg-red-600 text-white shadow
+                              {% else %}
+                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                              {% endif %}">
+                        Saídas
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Linha 2: Mês -->
+        <div>
+            <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Mês</label>
+            <div class="flex flex-wrap gap-2">
+                <a href="?ano={{ ano_selecionado }}&mes=todos{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                          {% if mes_selecionado == 'todos' %}
+                              bg-blue-600 text-white shadow
+                          {% else %}
+                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                          {% endif %}">
+                    Todos
+                </a>
+                {% for mes_num, mes_nome in meses %}
+                <a href="?ano={{ ano_selecionado }}&mes={{ mes_num }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                          {% if mes_selecionado == mes_num|stringformat:'02d' %}
+                              bg-blue-600 text-white shadow
+                          {% else %}
+                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                          {% endif %}">
+                    {{ mes_nome|slice:":3" }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Transações -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden mt-8 dark:bg-gray-800">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-indigo-600 dark:bg-indigo-800">
                     <tr>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nome</th> {# Renomeado de Descrição #}
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Valor</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Conta</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Local</th> {# Novo campo Local #}
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Categoria</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Data</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Recorrência</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Parcelas</th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Tipo</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Nome</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Valor</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Conta</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Local</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Categoria</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Data</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Recorrência</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Parcelas</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Status</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                     {% for transacao in transacoes %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                {% if transacao.valor > 0 %} {# Supondo que Entrada tenha valor positivo, Saída negativo #}
-                                    <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
-                                        <span aria-hidden="true" class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
-                                        <span class="relative">Entrada</span>
-                                    </span>
-                                {% else %}
-                                    <span class="relative inline-block px-3 py-1 font-semibold text-red-900 leading-tight">
-                                        <span aria-hidden="true" class="absolute inset-0 bg-red-200 opacity-50 rounded-full"></span>
-                                        <span class="relative">Saída</span>
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                {# Acessa o campo 'nome' que substitui 'origem' ou 'produto_servico' #}
-                                {{ transacao.nome }}
-                            </td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">R$ {{ transacao.valor|floatformat:2 }}</td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ transacao.conta_bancaria.get_codigo_banco_display }} - {{ transacao.conta_bancaria.numero_conta }}</td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ transacao.local|default:"N/A" }}</td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ transacao.categoria.nome|default:"N/A" }}</td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ transacao.data|date:"d/m/Y" }}</td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                    <tr class="hover:bg-gray-50 transition-colors duration-150 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if transacao|classname == 'Entrada' %}
+                                <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
+                                    <span aria-hidden="true" class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
+                                    <span class="relative">Entrada</span>
+                                </span>
+                            {% else %}
+                                <span class="relative inline-block px-3 py-1 font-semibold text-red-900 leading-tight">
+                                    <span aria-hidden="true" class="absolute inset-0 bg-red-200 opacity-50 rounded-full"></span>
+                                    <span class="relative">Saída</span>
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="font-medium text-gray-900 dark:text-white">{{ transacao.nome }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold">
+                            {% if transacao|classname == 'Entrada' %}
+                                <span class="valor-positivo">
+                                    {{ transacao.valor|br_currency }}
+                                </span>
+                            {% else %}
+                                <span class="valor-negativo">
+                                    -{{ transacao.valor|br_currency }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {{ transacao.conta_bancaria.get_nome_banco_display }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {{ transacao.local|default:"-" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {% if transacao|classname == 'Saida' %}
+                                {{ transacao.get_categoria_display }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {% if transacao|classname == 'Entrada' %}
+                                {{ transacao.data|date:"d/m/Y" }}
+                            {% else %}
+                                {{ transacao.data_vencimento|date:"d/m/Y" }}
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {% if transacao|classname == 'Saida' %}
                                 {% if transacao.recorrente and transacao.recorrente != 'unica' %}
-                                    Sim ({{ transacao.get_recorrente_display }})
+                                    {{ transacao.get_recorrente_display }}
                                 {% else %}
                                     Não
                                 {% endif %}
-                            </td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {% if transacao|classname == 'Saida' %}
                                 {% if transacao.quantidade_parcelas and transacao.quantidade_parcelas > 1 %}
                                     {{ transacao.quantidade_parcelas }}
                                 {% else %}
                                     Única
                                 {% endif %}
-                            </td>
-                             <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {% if transacao|classname == 'Saida' %}
                                 {% if transacao.situacao == 'pago' %}
                                     <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
                                         <span aria-hidden="true" class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
@@ -73,13 +328,21 @@
                                         <span class="relative">Pendente</span>
                                     </span>
                                 {% endif %}
-                            </td>
-                        </tr>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                            Nenhuma transação encontrada para o período selecionado
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    {% else %}
-        <p class="text-gray-700">Não há transações para exibir.</p>
-    {% endif %}
+    </div>
+</div>
 {% endblock %}

@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adicionar Conta Bancária</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right, #ece9e6, #ffffff);
+            padding: 20px;
+        }
+        
+        .form-container {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .form-input {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            width: 100%;
+        }
+        
+        .form-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            outline: none;
+            transform: translateY(-1px);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 0.95rem;
+        }
+        
+        .form-error {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 6px;
+            padding-left: 4px;
+            display: none;
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3), 0 2px 4px -1px rgba(99, 102, 241, 0.2);
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4), 0 4px 6px -2px rgba(99, 102, 241, 0.3);
+        }
+        
+        .cancel-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .cancel-btn:hover {
+            background-color: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-group {
+            position: relative;
+            margin-bottom: 1.25rem;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.5rem;
+            border-radius: 12px;
+            background-color: #f9fafb;
+            transition: all 0.3s ease;
+        }
+        
+        .checkbox-container:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .checkbox-input {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 2px solid #d1d5db;
+            appearance: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .checkbox-input:checked {
+            background-color: #6366f1;
+            border-color: #6366f1;
+        }
+        
+        .checkbox-input:checked::after {
+            content: "✓";
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .hidden-field {
+            display: none;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .success-message {
+            display: none;
+            background-color: #10b981;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Sistema de Gerenciamento de Contas</h1>
+    
+    <button id="openModalBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg inline-flex items-center shadow-md hover:shadow-lg transition-all mb-8">
+        <i class="fas fa-plus-circle mr-2"></i>
+        Adicionar Nova Conta
+    </button>
+
+    <div class="success-message" id="successMessage">
+        <i class="fas fa-check-circle mr-2"></i>
+        Conta adicionada com sucesso!
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <div class="form-container w-full max-w-lg p-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Adicionar Conta Bancária</h2>
+                    <p class="text-gray-600">Preencha os detalhes da nova conta</p>
+                </div>
+                
+                <form method="post" id="contaFormModal" class="space-y-6">
+                    <!-- Banco -->
+                    <div class="input-group">
+                        <label for="id_nome_banco" class="form-label flex items-center">
+                            <i class="fas fa-landmark mr-2 text-blue-500"></i>
+                            Banco
+                        </label>
+                        <div class="relative">
+                            <select id="id_nome_banco" name="nome_banco" class="form-input">
+                                <option value="">Selecione um banco</option>
+                                <option value="001">Banco do Brasil</option>
+                                <option value="033">Santander Brasil</option>
+                                <option value="104">Caixa Econômica</option>
+                                <option value="237">Bradesco</option>
+                                <option value="341">Itaú</option>
+                                <option value="260">Nubank</option>
+                                <option value="336">C6 Bank</option>
+                                <option value="VISA">Visa</option>
+                                <option value="MASTERCARD">Mastercard</option>
+                                <option value="ELO">Elo</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <p class="form-error" id="nome_banco_error"></p>
+                    </div>
+
+                    <!-- Tipo de Conta -->
+                    <div class="input-group">
+                        <label for="id_tipo" class="form-label flex items-center">
+                            <i class="fas fa-credit-card mr-2 text-purple-500"></i>
+                            Tipo de Conta
+                        </label>
+                        <div class="relative">
+                            <select id="id_tipo" name="tipo" class="form-input">
+                                <option value="">Selecione o tipo</option>
+                                <option value="corrente">Conta Corrente</option>
+                                <option value="poupanca">Conta Poupança</option>
+                                <option value="credito">Cartão de Crédito</option>
+                                <option value="debito">Cartão de Débito</option>
+                                <option value="alimentacao">Cartão Alimentação</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <p class="form-error" id="tipo_error"></p>
+                    </div>
+
+                    <!-- Agência -->
+                    <div class="input-group hidden-field" id="agencia_group">
+                        <label for="id_agencia" class="form-label flex items-center">
+                            <i class="fas fa-building mr-2 text-indigo-500"></i>
+                            Agência
+                        </label>
+                        <input type="text" id="id_agencia" name="agencia" class="form-input" placeholder="0000">
+                        <p class="form-error" id="agencia_error"></p>
+                    </div>
+
+                    <!-- Número da Conta -->
+                    <div class="input-group hidden-field" id="numero_conta_group">
+                        <label for="id_numero_conta" class="form-label flex items-center">
+                            <i class="fas fa-hashtag mr-2 text-indigo-500"></i>
+                            Número da Conta
+                        </label>
+                        <input type="text" id="id_numero_conta" name="numero_conta" class="form-input" placeholder="00000-0">
+                        <p class="form-error" id="numero_conta_error"></p>
+                    </div>
+
+                    <!-- Saldo Atual -->
+                    <div class="input-group">
+                        <label for="id_saldo_atual" class="form-label flex items-center">
+                            <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+                            Saldo Atual
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">R$</span>
+                            </div>
+                            <input type="text" id="id_saldo_atual" name="saldo_atual" class="form-input pl-10" placeholder="0,00" value="0,00">
+                        </div>
+                        <p class="form-error" id="saldo_atual_error"></p>
+                    </div>
+
+                    <!-- Campos específicos para cartão de crédito -->
+                    <div class="hidden-field" id="cartao_fields">
+                        <div class="bg-blue-50 p-4 rounded-xl mb-4">
+                            <h3 class="text-lg font-semibold text-blue-800 flex items-center">
+                                <i class="fas fa-credit-card mr-2"></i>
+                                Informações do Cartão
+                            </h3>
+                        </div>
+
+                        <!-- Número do Cartão -->
+                        <div class="input-group">
+                            <label for="id_numero_cartao" class="form-label flex items-center">
+                                <i class="fas fa-credit-card mr-2 text-blue-500"></i>
+                                Número do Cartão
+                            </label>
+                            <input type="text" id="id_numero_cartao" name="numero_cartao" class="form-input" placeholder="**** **** **** ****">
+                            <p class="form-error" id="numero_cartao_error"></p>
+                        </div>
+
+                        <!-- Limite do Cartão -->
+                        <div class="input-group">
+                            <label for="id_limite_cartao" class="form-label flex items-center">
+                                <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+                                Limite do Cartão
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">R$</span>
+                                </div>
+                                <input type="text" id="id_limite_cartao" name="limite_cartao" class="form-input pl-10" placeholder="0,00" value="0,00">
+                            </div>
+                            <p class="form-error" id="limite_cartao_error"></p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- Dia Fechamento Fatura -->
+                            <div class="input-group">
+                                <label for="id_dia_fechamento_fatura" class="form-label flex items-center">
+                                    <i class="fas fa-calendar-day mr-2 text-orange-500"></i>
+                                    Dia Fechamento
+                                </label>
+                                <input type="number" id="id_dia_fechamento_fatura" name="dia_fechamento_fatura" class="form-input" min="1" max="31" placeholder="1-31">
+                                <p class="form-error" id="dia_fechamento_fatura_error"></p>
+                            </div>
+
+                            <!-- Dia Vencimento Fatura -->
+                            <div class="input-group">
+                                <label for="id_dia_vencimento_fatura" class="form-label flex items-center">
+                                    <i class="fas fa-calendar-check mr-2 text-red-500"></i>
+                                    Dia Vencimento
+                                </label>
+                                <input type="number" id="id_dia_vencimento_fatura" name="dia_vencimento_fatura" class="form-input" min="1" max="31" placeholder="1-31">
+                                <p class="form-error" id="dia_vencimento_fatura_error"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Conta Ativa -->
+                    <div class="input-group">
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="id_ativa" name="ativa" class="checkbox-input" checked>
+                            <label for="id_ativa" class="text-sm font-medium text-gray-700 cursor-pointer flex items-center">
+                                <i class="fas fa-check-circle mr-2 text-green-500"></i>
+                                Conta Ativa
+                            </label>
+                        </div>
+                        <p class="form-error" id="ativa_error"></p>
+                    </div>
+                    
+                    <!-- Botões -->
+                    <div class="flex justify-end space-x-4 pt-6">
+                        <button type="button" id="cancelModalBtn" class="cancel-btn px-6 py-3 border border-gray-300 rounded-xl text-gray-700 flex items-center transition-all hover:shadow-md">
+                            <i class="fas fa-times mr-2"></i>
+                            Cancelar
+                        </button>
+                        <button type="submit" class="submit-btn px-6 py-3 text-white rounded-xl font-medium flex items-center transition-all hover:shadow-lg">
+                            <i class="fas fa-check mr-2"></i>
+                            Adicionar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Funções para controlar o modal
+        function showModal() {
+            document.getElementById('modalOverlay').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideModal() {
+            document.getElementById('modalOverlay').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+        
+        // Função para mostrar mensagem de sucesso
+        function showSuccessMessage() {
+            const successMessage = document.getElementById('successMessage');
+            successMessage.style.display = 'block';
+            
+            // Esconder a mensagem após 3 segundos
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos do DOM
+            const openModalBtn = document.getElementById('openModalBtn');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const cancelModalBtn = document.getElementById('cancelModalBtn');
+            const tipoContaSelect = document.getElementById('id_tipo');
+            const agenciaGroup = document.getElementById('agencia_group');
+            const numeroConteGroup = document.getElementById('numero_conta_group');
+            const cartaoFields = document.getElementById('cartao_fields');
+            const saldoInput = document.getElementById('id_saldo_atual');
+            const limiteInput = document.getElementById('id_limite_cartao');
+            const form = document.getElementById('contaFormModal');
+            
+            // Abrir modal
+            if (openModalBtn) {
+                openModalBtn.addEventListener('click', showModal);
+            }
+
+            // Fechar modal
+            if (cancelModalBtn) {
+                cancelModalBtn.addEventListener('click', hideModal);
+            }
+
+            // Fechar modal ao clicar fora
+            if (modalOverlay) {
+                modalOverlay.addEventListener('click', function(e) {
+                    if (e.target === modalOverlay) {
+                        hideModal();
+                    }
+                });
+            }
+            
+            // Função para formatar campos monetários com máscara brasileira
+            function formatarMoeda(input) {
+                if (!input) return;
+                let valor = input.value.replace(/\D/g, '');
+                if (valor === '') {
+                    input.value = '0,00';
+                    return;
+                }
+                while (valor.length < 3) {
+                    valor = '0' + valor;
+                }
+                const reais = valor.slice(0, -2);
+                const centavos = valor.slice(-2);
+                const reaisFormatado = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                input.value = reaisFormatado + ',' + centavos;
+            }
+            
+            // Aplica máscara a saldo atual e limite do cartão
+            if (saldoInput) {
+                saldoInput.addEventListener('input', () => formatarMoeda(saldoInput));
+            }
+            
+            if (limiteInput) {
+                limiteInput.addEventListener('input', () => formatarMoeda(limiteInput));
+            }
+            
+            // Função para alternar visibilidade dos campos conforme o tipo selecionado
+            function toggleCamposEspecificos() {
+                if (!tipoContaSelect) return;
+                
+                const selectedType = tipoContaSelect.value;
+                
+                // Reset de todos os campos específicos
+                if (agenciaGroup) agenciaGroup.classList.add('hidden-field');
+                if (numeroConteGroup) numeroConteGroup.classList.add('hidden-field');
+                if (cartaoFields) cartaoFields.classList.add('hidden-field');
+                
+                // Validações específicas para contas bancárias
+                if (selectedType === 'corrente' || selectedType === 'poupanca') {
+                    if (agenciaGroup) agenciaGroup.classList.remove('hidden-field');
+                    if (numeroConteGroup) numeroConteGroup.classList.remove('hidden-field');
+                }
+                
+                // Validações específicas para cartão de crédito
+                if (selectedType === 'credito') {
+                    if (cartaoFields) cartaoFields.classList.remove('hidden-field');
+                }
+            }
+            
+            // Executa no carregamento da página e adiciona listener no select para mudar dinamicamente
+            toggleCamposEspecificos();
+            if (tipoContaSelect) {
+                tipoContaSelect.addEventListener('change', toggleCamposEspecificos);
+            }
+            
+            // Função para limpar mensagens de erro
+            function limparErros() {
+                const errorElements = document.querySelectorAll('.form-error');
+                errorElements.forEach(element => {
+                    element.textContent = '';
+                    element.style.display = 'none';
+                });
+            }
+            
+            // Manipular envio do formulário
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    limparErros();
+                    
+                    // Validações básicas
+                    let isValid = true;
+                    const tipo = document.getElementById('id_tipo').value;
+                    const nomeBanco = document.getElementById('id_nome_banco').value;
+                    const saldo = document.getElementById('id_saldo_atual').value;
+                    const ativa = document.getElementById('id_ativa').checked;
+                    
+                    // Validação de banco
+                    if (!nomeBanco) {
+                        document.getElementById('nome_banco_error').textContent = 'Selecionar um banco é obrigatório';
+                        document.getElementById('nome_banco_error').style.display = 'block';
+                        isValid = false;
+                    }
+                    
+                    // Validação de tipo de conta
+                    if (!tipo) {
+                        document.getElementById('tipo_error').textContent = 'Tipo de conta é obrigatório';
+                        document.getElementById('tipo_error').style.display = 'block';
+                        isValid = false;
+                    }
+                    
+                    // Validações específicas para contas bancárias
+                    if (tipo === 'corrente' || tipo === 'poupanca') {
+                        const agencia = document.getElementById('id_agencia').value;
+                        const numeroConta = document.getElementById('id_numero_conta').value;
+                        
+                        if (!agencia) {
+                            document.getElementById('agencia_error').textContent = 'Agência é obrigatória para este tipo de conta';
+                            document.getElementById('agencia_error').style.display = 'block';
+                            isValid = false;
+                        }
+                        
+                        if (!numeroConta) {
+                            document.getElementById('numero_conta_error').textContent = 'Número da conta é obrigatório para este tipo de conta';
+                            document.getElementById('numero_conta_error').style.display = 'block';
+                            isValid = false;
+                        }
+                    }
+                    
+                    // Validações específicas para cartão de crédito
+                    if (tipo === 'credito') {
+                        const numeroCartao = document.getElementById('id_numero_cartao').value;
+                        const limiteCartao = document.getElementById('id_limite_cartao').value;
+                        const diaFechamento = document.getElementById('id_dia_fechamento_fatura').value;
+                        const diaVencimento = document.getElementById('id_dia_vencimento_fatura').value;
+                        
+                        if (!numeroCartao) {
+                            document.getElementById('numero_cartao_error').textContent = 'Número do cartão é obrigatório';
+                            document.getElementById('numero_cartao_error').style.display = 'block';
+                            isValid = false;
+                        }
+                        
+                        if (!limiteCartao || parseFloat(limiteCartao.replace('.', '').replace(',', '.')) <= 0) {
+                            document.getElementById('limite_cartao_error').textContent = 'Limite do cartão é obrigatório para cartões de crédito';
+                            document.getElementById('limite_cartao_error').style.display = 'block';
+                            isValid = false;
+                        }
+                        
+                        if (!diaFechamento) {
+                            document.getElementById('dia_fechamento_fatura_error').textContent = 'Dia de fechamento é obrigatório';
+                            document.getElementById('dia_fechamento_fatura_error').style.display = 'block';
+                            isValid = false;
+                        }
+                        
+                        if (!diaVencimento) {
+                            document.getElementById('dia_vencimento_fatura_error').textContent = 'Dia de vencimento é obrigatório';
+                            document.getElementById('dia_vencimento_fatura_error').style.display = 'block';
+                            isValid = false;
+                        }
+                    }
+                    
+                    // Validação de saldo
+                    if (!saldo || parseFloat(saldo.replace('.', '').replace(',', '.')) < 0) {
+                        document.getElementById('saldo_atual_error').textContent = 'Saldo deve ser um valor válido';
+                        document.getElementById('saldo_atual_error').style.display = 'block';
+                        isValid = false;
+                    }
+                    
+                    if (isValid) {
+                        // Simular envio bem-sucedido
+                        console.log('Formulário válido. Enviando dados...');
+                        
+                        // Aqui você normalmente faria uma requisição AJAX ou submeteria o formulário
+                        // Simulando o sucesso:
+                        showSuccessMessage();
+                        form.reset();
+                        hideModal();
+                    }
+                });
+            }
+            
+            // Adicionar validação em tempo real para os campos
+            const camposObrigatorios = ['id_nome_banco', 'id_tipo', 'id_saldo_atual'];
+            camposObrigatorios.forEach(id => {
+                const campo = document.getElementById(id);
+                if (campo) {
+                    campo.addEventListener('change', function() {
+                        const errorElement = document.getElementById(id + '_error');
+                        if (errorElement) {
+                            errorElement.textContent = '';
+                            errorElement.style.display = 'none';
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
