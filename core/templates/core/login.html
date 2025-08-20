@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login | Financas Pessoais</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .form-input:focus {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 2px #bbf7d0;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-cover bg-center relative" style="background-image: url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=900&q=80');">
+  <div class="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"></div>
+  <div class="relative z-10 flex flex-col md:flex-row w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl bg-transparent my-8">
+    <!-- Branding e texto -->
+    <div class="flex-1 flex flex-col justify-center p-8 text-white bg-transparent">
+      <h1 class="text-4xl font-bold mb-4 tracking-wide drop-shadow-lg">
+        <span class="text-green-200">FINANCAS</span><span class="text-gray-200 ml-1">PESSOAIS</span>
+      </h1>
+      <h2 class="text-5xl font-bold mb-4 leading-tight drop-shadow-lg">GERENCIE<br/>SEU DINHEIRO</h2>
+      <p class="mb-2 text-lg drop-shadow">Seu controle financeiro começa aqui.</p>
+      <p class="text-md text-green-100 drop-shadow">Dê o próximo passo para conquistar sua liberdade financeira.</p>
+    </div>
+    <!-- Card Login -->
+    <div class="flex-1 flex items-center justify-center">
+      <div class="w-full max-w-md rounded-xl p-8 shadow-lg bg-gray-900 bg-opacity-80 backdrop-blur-md">
+        <form method="post">
+          <!-- ATENÇÃO: Use {% csrf_token %} se for Django -->
+          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+          <h2 class="text-2xl font-bold text-green-100 mb-8 text-center tracking-wide">Entrar</h2>
+          <!-- Usuário ou Email -->
+          <div class="mb-5">
+            <label for="id_username" class="block text-green-200 font-semibold mb-1">Usuário ou Email</label>
+            <input type="text" id="id_username" name="username" placeholder="Digite seu usuário ou email"
+                   class="form-input w-full px-4 py-2 rounded-md border border-gray-700 text-gray-100 bg-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-400 transition"
+                   required autocomplete="username">
+          </div>
+          <!-- Senha -->
+          <div class="mb-5">
+            <label for="id_password" class="block text-green-200 font-semibold mb-1">Senha</label>
+            <input type="password" id="id_password" name="password" placeholder="Digite sua senha"
+                   class="form-input w-full px-4 py-2 rounded-md border border-gray-700 text-gray-100 bg-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-400 transition"
+                   required autocomplete="current-password">
+          </div>
+          <div class="flex justify-end mb-6">
+            <a href="{% url 'core:password_reset' %}" class="text-sm text-green-300 hover:underline">Esqueceu a senha?</a>
+
+          </div>
+          <button type="submit"
+                  class="w-full bg-green-600 text-white py-2 rounded-md font-semibold hover:bg-green-700 transition focus:ring-2 focus:ring-green-400 mb-3 shadow">
+            Entrar
+          </button>
+          <div class="text-center text-sm text-gray-400 mt-6">
+            Novo por aqui ?
+            <a href="{% url 'core:register' %}" class="text-green-300 hover:underline font-semibold">Crie uma Conta</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
