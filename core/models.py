@@ -461,8 +461,6 @@ class Subcategoria(models.Model):
 
 from django.db import models
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
-from django.utils import timezone
 
 class Entrada(models.Model):
     FORMA_RECEBIMENTO_CHOICES = [
@@ -559,9 +557,7 @@ class Entrada(models.Model):
 
 from django.db import models
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.utils import timezone
-from decimal import Decimal
 
 # Choices
 CATEGORIA_CHOICES = [

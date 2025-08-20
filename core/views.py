@@ -171,11 +171,7 @@ def conta_delete(request, pk):
 
 
 
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from .models import Entrada
-from .forms import EntradaForm
 
 
 @login_required
@@ -297,13 +293,9 @@ def entrada_delete(request, pk):
 
 
 
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.http import JsonResponse
 from django.views import View
-from .models import Saida, CATEGORIA_CHOICES, SUBCATEGORIA_CHOICES
-from .forms import SaidaForm
+from .models import CATEGORIA_CHOICES, SUBCATEGORIA_CHOICES
 
 from datetime import datetime
 
@@ -392,17 +384,9 @@ def saida_list(request):
     })
 
 
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from .models import ContaBancaria, Entrada, Saida, BANCO_CHOICES
-from .forms import ContaBancariaForm, EntradaForm, SaidaForm
-from django.db.models import Sum
-from datetime import date
-from django.http import JsonResponse
 
 
-from django.utils import timezone
 from dateutil.relativedelta import relativedelta  # Adicione esta dependência
 
 @login_required
@@ -621,15 +605,10 @@ def saldo_atual(request):
 ######################
 # Dashboard principal - VERSÃO COMPLETA
 ######################
-from .forms import ContaBancariaForm, EntradaForm, SaidaForm
-from django.db.models import Sum, Avg, Count, Q
-from datetime import date, timedelta, datetime
 from decimal import Decimal
 import numpy as np
 from sklearn.linear_model import LinearRegression
 import json
-from django.utils.safestring import mark_safe
-from dateutil.relativedelta import relativedelta
 
 # Funções auxiliares para padronização de dados
 def get_sum(queryset):

@@ -3,8 +3,6 @@ from .models import ContaBancaria, Entrada, Saida
 
 # Register your models here.
 
-from django.contrib import admin
-from .models import ContaBancaria
 
 @admin.register(ContaBancaria)
 class ContaBancariaAdmin(admin.ModelAdmin):

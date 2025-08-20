@@ -1,0 +1,49 @@
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.python-version
+
+# Database
+db.sqlite3
+db.sqlite3-journal
+
+# Django
+*.log
+local_settings.py
+
+# Dependencies
+lib/
+lib64/
+
+# Packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Other
+.idea/
+.vscode/
+*.swp

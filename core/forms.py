@@ -1,11 +1,13 @@
+from decimal import Decimal, InvalidOperation
+
 from django import forms
-from .models import ContaBancaria, Entrada, Saida, Categoria, Subcategoria
-from django.contrib.auth.models import User
-from datetime import date
-from django import forms
-from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from decimal import Decimal
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+
+from .models import ContaBancaria, Entrada, Saida
+
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, label="Email")
@@ -21,12 +23,13 @@ class CustomUserCreationForm(UserCreationForm):
             user.save()
         return user
 
+
 class ContaBancariaForm(forms.ModelForm):
     class Meta:
         model = ContaBancaria
-        fields = ['nome_banco', 'tipo', 'agencia', 'numero_conta', 'saldo_atual', 
-                 'numero_cartao', 'limite_cartao', 'dia_fechamento_fatura', 
-                 'dia_vencimento_fatura', 'ativa']
+        fields = ['nome_banco', 'tipo', 'agencia', 'numero_conta', 'saldo_atual',
+                  'numero_cartao', 'limite_cartao', 'dia_fechamento_fatura',
+                  'dia_vencimento_fatura', 'ativa']
         widgets = {
             'nome_banco': forms.Select(attrs={'class': 'form-input'}),
             'tipo': forms.Select(attrs={'class': 'form-input'}),
@@ -43,29 +46,25 @@ class ContaBancariaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
+
     def clean(self):
         cleaned_data = super().clean()
         tipo = cleaned_data.get('tipo')
-        
+
         # Validações específicas para contas bancárias
         if tipo in ['corrente', 'poupanca']:
             if not cleaned_data.get('agencia'):
                 self.add_error('agencia', 'Agência é obrigatória para este tipo de conta')
             if not cleaned_data.get('numero_conta'):
                 self.add_error('numero_conta', 'Número da conta é obrigatório para este tipo de conta')
-        
+
         # Validações específicas para cartão de crédito
         if tipo == 'cartao_credito':
             if not cleaned_data.get('limite_cartao'):
                 self.add_error('limite_cartao', 'Limite do cartão é obrigatório para cartões de crédito')
-        
+
         return cleaned_data
-    
-    
-from django import forms
-from .models import Entrada, ContaBancaria
-from django.contrib.auth.models import User
+
 
 class EntradaForm(forms.ModelForm):
     class Meta:
@@ -105,13 +104,14 @@ class EntradaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
+
         if user:
             # Filtra apenas contas bancárias ativas do usuário
             self.fields['conta_bancaria'].queryset = ContaBancaria.objects.filter(
                 proprietario=user,
                 ativa=True
             )
+
     def clean_valor(self):
         valor = self.cleaned_data.get('valor')
         if isinstance(valor, str):
@@ -119,17 +119,9 @@ class EntradaForm(forms.ModelForm):
             valor = valor.replace('.', '').replace(',', '.')
             try:
                 return Decimal(valor)
-            except:
+            except (InvalidOperation, ValueError):
                 raise forms.ValidationError("Valor inválido")
         return valor
-
-from django import forms
-from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm
-from django.core.exceptions import ValidationError
-from django.utils import timezone
-from decimal import Decimal
-from .models import ContaBancaria, Entrada, Saida, Categoria, Subcategoria
 
 
 class SaidaForm(forms.ModelForm):
@@ -170,7 +162,6 @@ class SaidaForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         data_lancamento = cleaned_data.get('data_lancamento')
-        data_vencimento = cleaned_data.get('data_vencimento')
         situacao = cleaned_data.get('situacao')
         tipo_pagamento = cleaned_data.get('tipo_pagamento_detalhe')
 
