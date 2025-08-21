@@ -1,13 +1,16 @@
 {% extends 'core/base.html' %}
-{% load currency_filters %}
+{% load currency_filters %} {# Certifique-se de que este filtro customizado está disponível #}
 
 {% block title %}Saldo Atual{% endblock %}
 
 {% block extra_head %}
-    <!-- Tailwind CSS CDN (se não estiver já no base.html) -->
+    <!-- Tailwind CSS CDN (já no base.html, mas mantido para clareza) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome para ícones (se não estiver já no base.html) -->
+    <!-- Font Awesome para ícones (já no base.html, mas mantido para clareza) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js CDN (já no base.html, mas mantido para clareza) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         /* Estilos base do painel e outros elementos */
         body {
@@ -28,51 +31,436 @@
             }
         }
         .valor-positivo {
-            background-color: #f0fdf4;
-            color: #166534;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: 500;
+            color: #16a34a; /* verde escuro do tailwind text-green-700 */
         }
         .valor-negativo {
-            background-color: #fef2f2;
-            color: #b91c1c;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: 500;
+            color: #dc2626; /* vermelho escuro do tailwind text-red-700 */
         }
+        .text-saldo-principal {
+            font-size: 3.5rem; /* Fonte maior para o saldo geral */
+            line-height: 1;
+        }
+        .chart-container {
+            height: 350px; /* Altura padrão para gráficos */
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Tooltip personalizado */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; /* Posição acima do elemento */
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.875rem;
+        }
+
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+        }
+
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Estilo para ícones de bancos - apenas exemplo */
+        .bank-icon {
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #f0f0f0;
+            margin-right: 0.5rem;
+            color: #333; /* Cor padrão para o ícone */
+        }
+        /* Exemplo de cor para ícones de bancos específicos */
+        .bank-icon.itau { background-color: #ff6200; color: white; }
+        .bank-icon.nubank { background-color: #8a05be; color: white; }
+        .bank-icon.bradesco { background-color: #c0392b; color: white; }
+        .bank-icon.bb { background-color: #00723a; color: white; }
+        .bank-icon.santander { background-color: #ec0000; color: white; }
+        /* Adicione mais classes conforme necessário para outros bancos */
+
     </style>
 {% endblock %}
 
 {% block content %}
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6">Saldo Atual</h1>
+        <h1 class="text-4xl font-extrabold text-gray-800 dark:text-gray-100 mb-8 text-center">Meu Saldo Financeiro</h1>
+
+        <!-- Filtros de Conta -->
+        <div class="glass-panel p-6 mb-8 shadow-lg">
+            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Filtrar Contas</h2>
+            <form id="filter-form" method="GET" action="{% url 'core:saldo_atual' %}" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="tipo-filtro" class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Tipo de Conta</label>
+                    <select id="tipo-filtro" name="tipo" class="form-input w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        <option value="todos" {% if tipo_filtro_selecionado == 'todos' %}selected{% endif %}>Todos</option>
+                        {% for type_code, type_display in tipos_conta_choices %}
+                            <option value="{{ type_code }}" {% if tipo_filtro_selecionado == type_code %}selected{% endif %}>{{ type_display }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="status-filtro" class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Status da Conta</label>
+                    <select id="status-filtro" name="status" class="form-input w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        <option value="todas" {% if status_filtro_selecionado == 'todas' %}selected{% endif %}>Todas</option>
+                        <option value="ativas" {% if status_filtro_selecionado == 'ativas' %}selected{% endif %}>Ativas</option>
+                        <option value="inativas" {% if status_filtro_selecionado == 'inativas' %}selected{% endif %}>Inativas</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2 flex justify-end">
+                    <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out">
+                        Aplicar Filtros
+                    </button>
+                </div>
+            </form>
+        </div>
+
+
+        <!-- Cards de Resumo Rápido -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="glass-panel p-6 shadow-md rounded-lg text-gray-800 dark:text-gray-200">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xl font-semibold">Saldo Disponível</span>
+                    <i class="fas fa-wallet text-3xl text-indigo-500"></i>
+                </div>
+                <p class="mt-2 text-3xl font-extrabold {% if saldo_disponivel >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ saldo_disponivel|br_currency }} {# Removido |floatformat:2 #}
+                </p>
+                <div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-info-circle"></i>
+                    <span class="ml-1">Soma das contas ativas.</span>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 shadow-md rounded-lg text-gray-800 dark:text-gray-200">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xl font-semibold">Limite Cartão Disponível</span>
+                    <i class="fas fa-credit-card text-3xl text-purple-500"></i>
+                </div>
+                <p class="mt-2 text-3xl font-extrabold {% if limite_cartao_credito_disponivel >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ limite_cartao_credito_disponivel|br_currency }} {# Removido |floatformat:2 #}
+                </p>
+                <div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-info-circle"></i>
+                    <span class="ml-1">Limite total menos despesas de crédito.</span>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 shadow-md rounded-lg text-gray-800 dark:text-gray-200">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xl font-semibold">Saldo Conta Corrente</span>
+                    <i class="fas fa-piggy-bank text-3xl text-blue-500"></i>
+                </div>
+                <p class="mt-2 text-3xl font-extrabold {% if saldo_conta_corrente >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ saldo_conta_corrente|br_currency }} {# Removido |floatformat:2 #}
+                </p>
+                <div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-info-circle"></i>
+                    <span class="ml-1">Saldo consolidado das suas contas correntes.</span>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 shadow-md rounded-lg text-gray-800 dark:text-gray-200">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xl font-semibold">Saldo Poupança</span>
+                    <i class="fas fa-hand-holding-usd text-3xl text-teal-500"></i>
+                </div>
+                <p class="mt-2 text-3xl font-extrabold {% if saldo_poupanca >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ saldo_poupanca|br_currency }} {# Removido |floatformat:2 #}
+                </p>
+                <div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-info-circle"></i>
+                    <span class="ml-1">Total acumulado nas suas contas poupança.</span>
+                </div>
+            </div>
+        </div>
 
         <!-- Painel de Saldo Geral -->
-        <div class="glass-panel p-6 mb-6">
-            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">Saldo Geral</h2>
-            <p class="text-4xl font-extrabold {% if saldo_geral >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                {{ saldo_geral|floatformat:2|br_currency }} {# Alterado de 'currency' para 'br_currency' #}
-            </p>
+        <div class="glass-panel p-6 mb-6 shadow-lg">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center">
+                <i class="fas fa-balance-scale mr-3 text-indigo-600"></i>
+                Saldo Geral Consolidado
+                <div class="tooltip-container ml-2">
+                    <i class="fas fa-question-circle text-gray-400 hover:text-gray-600 transition"></i>
+                    <span class="tooltip-text">O saldo geral é a soma de todas as suas entradas menos todas as suas saídas registradas em todas as contas.</span>
+                </div>
+            </h2>
+            <div class="flex items-center justify-between">
+                <p class="text-saldo-principal font-extrabold {% if saldo_geral >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ saldo_geral|br_currency }} {# Removido |floatformat:2 #}
+                </p>
+                <div class="text-right">
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Variação Mensal:</p>
+                    <p class="text-lg font-bold
+                        {% if variacao_saldo_mensal > 0 %}text-green-500{% elif variacao_saldo_mensal < 0 %}text-red-500{% else %}text-gray-500{% endif %}">
+                        {% if variacao_saldo_mensal > 0 %}<i class="fas fa-arrow-up mr-1"></i>{% elif variacao_saldo_mensal < 0 %}<i class="fas fa-arrow-down mr-1"></i>{% endif %}
+                        {{ variacao_saldo_mensal|floatformat:2 }}% {# Mantido floatformat aqui pois não é moeda, apenas percentual #}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">vs. {{ mes_comparacao }}</p>
+                </div>
+            </div>
         </div>
 
         <!-- Painel de Saldo por Conta -->
-        <div class="glass-panel p-6">
-            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Saldo por Conta</h2>
+        <div class="glass-panel p-6 mb-8 shadow-lg">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center">
+                <i class="fas fa-money-check-alt mr-3 text-indigo-600"></i>
+                Saldo Detalhado por Conta
+            </h2>
             {% if saldo_por_conta %}
                 <ul class="space-y-4">
                     {% for conta, saldo in saldo_por_conta.items %}
-                        <li class="flex justify-between items-center text-gray-700 dark:text-gray-300">
-                            <span class="text-lg font-medium">{{ conta }}</span>
-                            <span class="font-bold text-lg {% if saldo >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                                {{ saldo|floatformat:2|br_currency }} {# Alterado de 'currency' para 'br_currency' #}
+                        <li class="flex justify-between items-center text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-2">
+                            <span class="text-lg font-medium flex items-center">
+                                {# Lógica para ícones de bancos. Adapte ou remova se não usar classes customizadas #}
+                                {% if 'Banco do Brasil' in conta %}<i class="bank-icon bb fas fa-building"></i>
+                                {% elif 'Itaú' in conta %}<i class="bank-icon itau fas fa-bank"></i>
+                                {% elif 'Nubank' in conta %}<i class="bank-icon nubank fas fa-credit-card"></i>
+                                {% elif 'Bradesco' in conta %}<i class="bank-icon bradesco fas fa-building"></i>
+                                {% elif 'Santander' in conta %}<i class="bank-icon santander fas fa-bank"></i>
+                                {% else %}<i class="bank-icon fas fa-university"></i>{% endif %}
+                                {{ conta }}
+                            </span>
+                            <span class="font-bold text-xl {% if saldo >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                {{ saldo|br_currency }} {# Removido |floatformat:2 #}
                             </span>
                         </li>
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="text-gray-500 dark:text-gray-400">Nenhum saldo disponível. Cadastre suas contas e transações.</p>
+                <div class="text-center p-8 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <i class="fas fa-exclamation-circle text-6xl text-orange-400 mb-4"></i>
+                    <p class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Ops! Nenhum saldo encontrado.</p>
+                    <p class="text-gray-500 dark:text-gray-400 mb-4">Parece que você ainda não cadastrou nenhuma conta ou transação. Que tal começar agora?</p>
+                    <a href="{% url 'core:conta_create' %}" class="inline-flex items-center px-5 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out">
+                        <i class="fas fa-plus-circle mr-2"></i>
+                        Cadastrar Nova Conta
+                    </a>
+                </div>
             {% endif %}
         </div>
+
+        <!-- Gráficos de Saldo -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Gráfico de Pizza: Composição do Saldo por Tipo de Conta -->
+            <div class="glass-panel p-6 shadow-md rounded-lg">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Composição do Saldo por Tipo de Conta</h2>
+                <div class="chart-container">
+                    <canvas id="saldoPorTipoChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico Histórico: Evolução do Saldo -->
+            <div class="glass-panel p-6 shadow-md rounded-lg">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Evolução do Saldo (Últimos 12 meses)</h2>
+                <div class="chart-container">
+                    <canvas id="historicoSaldoChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Últimas Transações -->
+        <div class="glass-panel p-6 shadow-md rounded-lg mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center">
+                <i class="fas fa-exchange-alt mr-3 text-indigo-600"></i>
+                Últimas Transações Recentes
+            </h2>
+            {% if ultimas_transacoes %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
+                    <thead class="bg-gray-100 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Data</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Descrição</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Conta</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for transacao in ultimas_transacoes %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ transacao.data }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ transacao.nome }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ transacao.conta }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-right
+                                {% if transacao.tipo == 'Entrada' %}text-green-600{% else %}text-red-600{% endif %}">
+                                {% if transacao.tipo == 'Saída' %}-{% endif %}{{ transacao.valor|br_currency }} {# Removido |floatformat:2 #}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <p class="text-gray-500 dark:text-gray-400 text-center">Nenhuma transação recente para exibir.</p>
+            {% endif %}
+        </div>
+
+        <!-- Botão de Exportação de Dados -->
+        <div class="text-center mt-8">
+            <button onclick="exportData()" class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ease-in-out inline-flex items-center">
+                <i class="fas fa-download mr-2"></i>
+                Exportar Dados do Saldo (Em Breve)
+            </button>
+            <p class="text-sm text-gray-500 mt-2">Funcionalidade de exportação em desenvolvimento.</p>
+        </div>
+
     </div>
+
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Função para formatar moeda (já definida aqui para garantir que esteja acessível)
+            function formatCurrency(value) {
+                // TESTE: Adiciona um log no console para verificar se a função está sendo chamada e retornando o formato esperado.
+                console.log('Testando formatCurrency para 4500:', new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(4500)); // Deve imprimir "R$ 4.500,00"
+
+                return new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(value);
+            }
+
+            // Dados passados do Django (já são strings JSON)
+            const historicoLabels = {{ historico_labels|safe }};
+            const historicoData = {{ historico_data|safe }};
+            const saldoTiposLabels = {{ saldo_tipos_labels|safe }};
+            const saldoTiposValues = {{ saldo_tipos_values|safe }};
+
+            // Gráfico Histórico de Saldo (Linha)
+            const historicoSaldoCtx = document.getElementById('historicoSaldoChart').getContext('2d');
+            new Chart(historicoSaldoCtx, {
+                type: 'line',
+                data: {
+                    labels: historicoLabels,
+                    datasets: [{
+                        label: 'Saldo Acumulado',
+                        data: historicoData,
+                        borderColor: '#4f46e5', // Indigo-600
+                        backgroundColor: 'rgba(79, 70, 229, 0.2)', // Indigo-600 com transparência
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#4f46e5',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#4f46e5'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de Pizza: Saldo por Tipo de Conta
+            const saldoPorTipoCtx = document.getElementById('saldoPorTipoChart').getContext('2d');
+            if (saldoTiposLabels.length > 0) {
+                new Chart(saldoPorTipoCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: saldoTiposLabels,
+                        datasets: [{
+                            data: saldoTiposValues,
+                            backgroundColor: [
+                                '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b', '#22c55e', '#7dd3fc', '#a855f7', '#ec4899', '#fcd34d'
+                            ],
+                            hoverOffset: 4,
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.raw !== null) {
+                                            label += formatCurrency(context.raw);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                saldoPorTipoCtx.canvas.parentNode.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Não há dados suficientes para este gráfico. Cadastre contas e transações!</p>';
+            }
+
+            // Função para exportar dados (placeholder por enquanto)
+            window.exportData = function() {
+                alert('A funcionalidade de exportação de dados está em desenvolvimento! Em breve você poderá exportar seus saldos.');
+            };
+        });
+    </script>
 {% endblock %}

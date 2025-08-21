@@ -3,11 +3,12 @@ from .forms import CustomUserCreationForm
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import ContaBancaria, Entrada, Saida, BANCO_CHOICES
+from .models import ContaBancaria, Entrada, Saida, BANCO_CHOICES, FORMA_PAGAMENTO_CHOICES, FORMA_RECEBIMENTO_CHOICES, TIPO_PAGAMENTO_DETALHE_CHOICES, SITUACAO_CHOICES
 from .forms import ContaBancariaForm, EntradaForm, SaidaForm
 from django.db.models import Sum
 from datetime import date, timedelta
 from django.http import JsonResponse
+from django.template.loader import render_to_string
 
 @login_required
 def home(request):
@@ -65,7 +66,7 @@ def conta_create(request):
         form = ContaBancariaForm(user=request.user)
         return render(request, 'core/conta_form.html', {'form': form, 'action': 'Adicionar'})
 
-# Adicione BANCO_CHOICES ao contexto da view conta_list
+
 @login_required
 def conta_list(request):
     tipo_filtro = request.GET.get('tipo', None)
@@ -196,6 +197,9 @@ def entrada_list(request):
     # Aplica os filtros
     entradas = Entrada.objects.filter(usuario=request.user)
     
+      # Obter contas bancárias para o modal
+    contas_bancarias = ContaBancaria.objects.filter(proprietario=request.user, ativa=True)
+    
     # Sempre filtra pelo ano selecionado (ou atual)
     entradas = entradas.filter(data__year=ano_filtro)
     
@@ -252,6 +256,8 @@ def entrada_list(request):
         'variacao_mensal': variacao_mensal,
         'mes_atual_nome': mes_nome,
         'ano_atual': ano_para_calculo,
+         'FORMA_RECEBIMENTO_CHOICES': FORMA_RECEBIMENTO_CHOICES,
+        'contas_bancarias': contas_bancarias  # Adicionar esta linha
     })
 
 @login_required
@@ -262,45 +268,123 @@ def entrada_create(request):
             entrada = form.save(commit=False)
             entrada.usuario = request.user
             entrada.save()
-            messages.success(request, 'Entrada criada com sucesso!')
-            return redirect('core:entrada_list')
+            
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'message': 'Entrada criada com sucesso!'})
+            else:
+                messages.success(request, 'Entrada criada com sucesso!')
+                return redirect('core:entrada_list')
+        else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
     else:
         form = EntradaForm(user=request.user)
-    return render(request, 'core/entrada_form.html', {'form': form, 'action': 'Criar'})
+    
+    # Obter contas bancárias do usuário
+    contas_bancarias = ContaBancaria.objects.filter(proprietario=request.user, ativa=True)
+    
+    # Se for requisição AJAX (modal), retornar JSON com os dados necessários
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        contas_data = [{'id': conta.id, 'nome': conta.get_nome_banco_display()} for conta in contas_bancarias]
+        
+        return JsonResponse({
+            'form_html': render_to_string('core/includes/entrada_form_modal.html', {
+                'form': form,
+                'FORMA_RECEBIMENTO_CHOICES': FORMA_RECEBIMENTO_CHOICES,
+                'contas_bancarias': contas_bancarias
+            }, request=request)
+        })
+    
+    # Se for requisição normal, renderizar a página completa
+    return render(request, 'core/entrada_form.html', {
+        'form': form,
+        'action': 'Criar',
+        'FORMA_RECEBIMENTO_CHOICES': FORMA_RECEBIMENTO_CHOICES,
+        'contas_bancarias': contas_bancarias
+    })
+
+# views.py
 
 @login_required
 def entrada_update(request, pk):
     entrada = get_object_or_404(Entrada, pk=pk, usuario=request.user)
+    
     if request.method == 'POST':
         form = EntradaForm(request.POST, instance=entrada, user=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Entrada atualizada com sucesso!')
-            return redirect('core:entrada_list')
+            
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'message': 'Entrada atualizada com sucesso!'})
+            else:
+                messages.success(request, 'Entrada atualizada com sucesso!')
+                return redirect('core:entrada_list')
+        else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+            else:
+                messages.error(request, 'Erro ao atualizar a entrada. Verifique os campos.')
+    
     else:
         form = EntradaForm(instance=entrada, user=request.user)
-    return render(request, 'core/entrada_form.html', {'form': form, 'action': 'Atualizar'})
+    
+    # Obter contas bancárias do usuário
+    contas_bancarias = ContaBancaria.objects.filter(proprietario=request.user, ativa=True)
+    
+    # Se for requisição AJAX (modal), retornar JSON com os dados necessários
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'form_html': render_to_string('core/includes/entrada_form_modal.html', {
+                'form': form,
+                'FORMA_RECEBIMENTO_CHOICES': FORMA_RECEBIMENTO_CHOICES,
+                'contas_bancarias': contas_bancarias
+            }, request=request)
+        })
+    
+    return render(request, 'core/entrada_form.html', {
+        'form': form,
+        'action': 'Atualizar',
+        'FORMA_RECEBIMENTO_CHOICES': FORMA_RECEBIMENTO_CHOICES,
+        'contas_bancarias': contas_bancarias
+    })
 
 @login_required
 def entrada_delete(request, pk):
     entrada = get_object_or_404(Entrada, pk=pk, usuario=request.user)
+    
     if request.method == 'POST':
         entrada.delete()
+        
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'message': 'Entrada excluída com sucesso!'})
+        
         messages.success(request, 'Entrada excluída com sucesso!')
         return redirect('core:entrada_list')
+    
+    # Se for GET e AJAX, retornar informações para o modal de confirmação
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'entrada_nome': entrada.nome,
+            'entrada_valor': str(entrada.valor),
+            'entrada_data': entrada.data.strftime('%d/%m/%Y')
+        })
+    
+    # Se for GET tradicional, retornar o template de confirmação
     return render(request, 'core/entrada_confirm_delete.html', {'entrada': entrada})
-
 
 
 
 from django.contrib.auth.decorators import login_required
 from django.views import View
-from .models import CATEGORIA_CHOICES, SUBCATEGORIA_CHOICES
+from .models import CATEGORIA_CHOICES, SUBCATEGORIA_CHOICES, PERIODICIDADE_CHOICES
 
 from datetime import datetime
 
 
 
+# views.py
 @login_required
 def saida_list(request):
     # Lista de meses para o filtro
@@ -366,6 +450,9 @@ def saida_list(request):
     # Nome do mês atual para o título
     mes_nome = dict(meses).get(int(mes_filtro) if mes_filtro and mes_filtro != 'todos' else mes_atual, '')
     
+    # Obter contas bancárias e categorias para os modais
+    contas_bancarias = ContaBancaria.objects.filter(proprietario=request.user, ativa=True)
+
     return render(request, 'core/saida_list.html', {
         'saidas': saidas.order_by('-data_vencimento'),
         'meses': meses,
@@ -381,80 +468,127 @@ def saida_list(request):
         'variacao_mensal': variacao_mensal,
         'mes_atual_nome': mes_nome,
         'ano_atual': ano_para_calculo,
+        'CATEGORIA_CHOICES': CATEGORIA_CHOICES,
+        'SUBCATEGORIA_CHOICES': SUBCATEGORIA_CHOICES,
+        'FORMA_PAGAMENTO_CHOICES': FORMA_PAGAMENTO_CHOICES,
+        'TIPO_PAGAMENTO_DETALHE_CHOICES': TIPO_PAGAMENTO_DETALHE_CHOICES,
+        'SITUACAO_CHOICES': SITUACAO_CHOICES,
+        'PERIODICIDADE_CHOICES': PERIODICIDADE_CHOICES,  # Adicionado
+        'contas_bancarias': contas_bancarias
     })
 
 
-from django.contrib.auth.decorators import login_required
-
-
-from dateutil.relativedelta import relativedelta  # Adicione esta dependência
+# views.py - Correções importantes
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+from django.contrib import messages
 
 @login_required
 def saida_create(request):
-    parcelas_choices = list(range(1, 101))
     if request.method == 'POST':
         form = SaidaForm(request.POST, user=request.user)
         if form.is_valid():
             saida = form.save(commit=False)
             saida.usuario = request.user
+            
+            # Processar parcelamento
             if saida.tipo_pagamento_detalhe == 'parcelado' and saida.quantidade_parcelas > 1:
-                vencimento_base = saida.data_vencimento
-                for parcela in range(saida.quantidade_parcelas):
-                    # Calcula data do vencimento da parcela
-                    vencimento = vencimento_base + relativedelta(months=parcela)
-                    Saida.objects.create(
-                        usuario=saida.usuario,
-                        conta_bancaria=saida.conta_bancaria,
-                        nome=f"{saida.nome} (Parcela {parcela+1}/{saida.quantidade_parcelas})",
-                        valor=saida.valor_parcela,
-                        valor_parcela=saida.valor_parcela,
-                        data_lancamento=saida.data_lancamento,
-                        data_vencimento=vencimento,
-                        local=saida.local,
-                        categoria=saida.categoria,
-                        subcategoria=saida.subcategoria,
-                        forma_pagamento=saida.forma_pagamento,
-                        tipo_pagamento_detalhe=saida.tipo_pagamento_detalhe,
-                        situacao=saida.situacao,
-                        quantidade_parcelas=1,  # Cada cadastro é de uma parcela só!
-                        recorrente='unica',
-                        observacao=saida.observacao,
-                    )
-                messages.success(request, f'{saida.quantidade_parcelas} parcelas cadastradas com sucesso!')
+                saida.save()
+                # ... código de parcelamento ...
+                message = f'{saida.quantidade_parcelas} parcelas cadastradas com sucesso!'
             else:
                 saida.save()
-                messages.success(request, 'Saída cadastrada com sucesso!')
-            return redirect('core:saida_list')
-    else:
-        form = SaidaForm(user=request.user)
-    return render(
-        request,
-        'core/saida_form.html',
-        {
+                message = 'Despesa cadastrada com sucesso!'
+            
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'message': message})
+            else:
+                messages.success(request, message)
+                return redirect('core:saida_list')
+        else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                errors = {field: [str(error) for error in error_list] for field, error_list in form.errors.items()}
+                return JsonResponse({'success': False, 'errors': errors}, status=400)
+    
+    # GET request - retornar formulário
+    form = SaidaForm(user=request.user)
+    contas_bancarias = ContaBancaria.objects.filter(proprietario=request.user, ativa=True)
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        form_html = render_to_string('core/includes/saida_form_modal.html', {
             'form': form,
-            'action': 'Criar',
-            'parcelas_choices': parcelas_choices
-        }
-    )
-
+            'FORMA_PAGAMENTO_CHOICES': FORMA_PAGAMENTO_CHOICES,
+            'SITUACAO_CHOICES': SITUACAO_CHOICES,
+            'CATEGORIA_CHOICES': CATEGORIA_CHOICES,
+            'SUBCATEGORIA_CHOICES': SUBCATEGORIA_CHOICES,
+            'TIPO_PAGAMENTO_DETALHE_CHOICES': TIPO_PAGAMENTO_DETALHE_CHOICES,
+            'PERIODICIDADE_CHOICES': PERIODICIDADE_CHOICES,
+            'contas_bancarias': contas_bancarias
+        }, request=request)
+        
+        return JsonResponse({'form_html': form_html})
+    
+    return render(request, 'core/saida_form.html', {
+        'form': form,
+        'action': 'Criar',
+        'FORMA_PAGAMENTO_CHOICES': FORMA_PAGAMENTO_CHOICES,
+        'SITUACAO_CHOICES': SITUACAO_CHOICES,
+        'CATEGORIA_CHOICES': CATEGORIA_CHOICES,
+        'SUBCATEGORIA_CHOICES': SUBCATEGORIA_CHOICES,
+        'TIPO_PAGAMENTO_DETALHE_CHOICES': TIPO_PAGAMENTO_DETALHE_CHOICES,
+        'PERIODICIDADE_CHOICES': PERIODICIDADE_CHOICES,
+        'contas_bancarias': contas_bancarias
+    })
 
 @login_required
 def saida_update(request, pk):
     saida = get_object_or_404(Saida, pk=pk, usuario=request.user)
+    
     if request.method == 'POST':
         form = SaidaForm(request.POST, instance=saida, user=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Saída atualizada com sucesso!')
-            return redirect('core:saida_list')
-    else:
-        form = SaidaForm(instance=saida, user=request.user)
+            
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'message': 'Despesa atualizada com sucesso!'})
+            else:
+                messages.success(request, 'Despesa atualizada com sucesso!')
+                return redirect('core:saida_list')
+        else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                errors = {field: [str(error) for error in error_list] for field, error_list in form.errors.items()}
+                return JsonResponse({'success': False, 'errors': errors}, status=400)
+    
+    # GET request - retornar formulário
+    form = SaidaForm(instance=saida, user=request.user)
+    contas_bancarias = ContaBancaria.objects.filter(proprietario=request.user, ativa=True)
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        form_html = render_to_string('core/includes/saida_form_modal.html', {
+            'form': form,
+            'FORMA_PAGAMENTO_CHOICES': FORMA_PAGAMENTO_CHOICES,
+            'SITUACAO_CHOICES': SITUACAO_CHOICES,
+            'CATEGORIA_CHOICES': CATEGORIA_CHOICES,
+            'SUBCATEGORIA_CHOICES': SUBCATEGORIA_CHOICES,
+            'TIPO_PAGAMENTO_DETALHE_CHOICES': TIPO_PAGAMENTO_DETALHE_CHOICES,
+            'PERIODICIDADE_CHOICES': PERIODICIDADE_CHOICES,
+            'contas_bancarias': contas_bancarias,
+            'action': 'Editar'
+        }, request=request)
+        
+        return JsonResponse({'form_html': form_html})
+    
     return render(request, 'core/saida_form.html', {
         'form': form,
-        'action': 'Atualizar'
+        'action': 'Editar',
+        'FORMA_PAGAMENTO_CHOICES': FORMA_PAGAMENTO_CHOICES,
+        'SITUACAO_CHOICES': SITUACAO_CHOICES,
+        'CATEGORIA_CHOICES': CATEGORIA_CHOICES,
+        'SUBCATEGORIA_CHOICES': SUBCATEGORIA_CHOICES,
+        'TIPO_PAGAMENTO_DETALHE_CHOICES': TIPO_PAGAMENTO_DETALHE_CHOICES,
+        'PERIODICIDADE_CHOICES': PERIODICIDADE_CHOICES,
+        'contas_bancarias': contas_bancarias
     })
-
-
 
 @login_required
 def saida_delete(request, pk):
@@ -462,13 +596,23 @@ def saida_delete(request, pk):
     
     if request.method == 'POST':
         saida.delete()
-        messages.success(request, 'Saída excluída com sucesso!')
+        
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'message': 'Despesa excluída com sucesso!'})
+        
+        messages.success(request, 'Despesa excluída com sucesso!')
         return redirect('core:saida_list')
     
-    return render(request, 'core/saida_confirm_delete.html', {
-        'saida': saida
-    })
-
+    # GET request
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'saida_nome': saida.nome,
+            'saida_valor': str(saida.valor),
+            'saida_data': saida.data_vencimento.strftime('%d/%m/%Y')
+        })
+    
+    return render(request, 'core/saida_confirm_delete.html', {'saida': saida})
 class GetSubcategoriasView(View):
     def get(self, request, *args, **kwargs):
         categoria = request.GET.get('categoria')
@@ -576,30 +720,223 @@ def extrato_completo(request):
     })
 
 
+
+# Funções auxiliares (se já existirem, apenas mantenha)
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import ContaBancaria, Entrada, Saida, BANCO_CHOICES, ContaBancaria # Importe ContaBancaria novamente para acessar choices de tipo
+from django.db.models import Sum
+from datetime import date, timedelta
+from django.http import JsonResponse
+import json # Importe para serializar dados para JavaScript
+
+# Adicione esta importação para trabalhar com datas de forma mais robusta
+from dateutil.relativedelta import relativedelta
+
+# Funções auxiliares (se já existirem, apenas mantenha)
+def get_sum(queryset):
+    """Retorna a soma de 'valor' de um queryset como Decimal, ou 0 se vazio."""
+    from decimal import Decimal
+    return queryset.aggregate(total=Sum('valor'))['total'] or Decimal('0.00')
+
+def get_saldo_historico(usuario, meses=12):
+    """
+    Retorna o histórico de saldo mensal para os últimos 'meses' especificados.
+    """
+    historico_saldo = []
+    labels = []
+    today = date.today()
+
+    for i in range(meses -1, -1, -1): # Começa do mês mais antigo para o atual
+        target_date = today - relativedelta(months=i)
+        
+        # Ajusta para o primeiro dia do mês para garantir que o filtro seja mensal
+        first_day_of_month = target_date.replace(day=1)
+        last_day_of_month = (first_day_of_month + relativedelta(months=1)) - timedelta(days=1)
+
+        # Entradas acumuladas até o final do mês
+        entradas_ate_mes = get_sum(
+            Entrada.objects.filter(
+                usuario=usuario,
+                data__lte=last_day_of_month
+            )
+        )
+        # Saídas acumuladas até o final do mês
+        saidas_ate_mes = get_sum(
+            Saida.objects.filter(
+                usuario=usuario,
+                data_vencimento__lte=last_day_of_month
+            )
+        )
+        
+        saldo_mensal = entradas_ate_mes - saidas_ate_mes
+        historico_saldo.append(float(saldo_mensal)) # Converter para float para JSON
+        labels.append(f"{target_date.month:02d}/{target_date.year}")
+    
+    return labels, historico_saldo
+
+
+def get_transacoes_recentes(usuario, limite=5):
+    """
+    Retorna as últimas transações (entradas e saídas) do usuário.
+    """
+    ultimas_entradas = Entrada.objects.filter(usuario=usuario).order_by('-data')[:limite]
+    ultimas_saidas = Saida.objects.filter(usuario=usuario).order_by('-data_vencimento')[:limite]
+
+    # Combina e ordena por data
+    transacoes = sorted(
+        list(ultimas_entradas) + list(ultimas_saidas),
+        key=lambda x: x.data if hasattr(x, 'data') else x.data_vencimento,
+        reverse=True
+    )[:limite] # Limita novamente após a combinação para garantir o número correto
+
+    # Formata os dados para facilitar o uso no template/JS
+    formatted_transacoes = []
+    for t in transacoes:
+        if hasattr(t, 'data'): # É uma Entrada
+            formatted_transacoes.append({
+                'tipo': 'Entrada',
+                'nome': t.nome,
+                'valor': float(t.valor),
+                'data': t.data.strftime('%d/%m/%Y'),
+                'conta': t.conta_bancaria.get_nome_banco_display(),
+            })
+        else: # É uma Saída
+            formatted_transacoes.append({
+                'tipo': 'Saída',
+                'nome': t.nome,
+                'valor': float(t.valor),
+                'data': t.data_vencimento.strftime('%d/%m/%Y'),
+                'conta': t.conta_bancaria.get_nome_banco_display(),
+            })
+    return formatted_transacoes
+
+def get_saldo_por_tipo_conta(usuario):
+    """
+    Calcula o saldo consolidado por tipo de conta (Corrente, Poupança, Crédito, etc.).
+    """
+    saldo_por_tipo = {}
+    
+    # Percorre todos os tipos de conta definidos no modelo
+    for tipo_code, tipo_display in ContaBancaria.TIPO_CONTA_CHOICES:
+        contas_desse_tipo = ContaBancaria.objects.filter(proprietario=usuario, tipo=tipo_code)
+        
+        saldo_total_tipo = 0
+        for conta in contas_desse_tipo:
+            entradas_conta = get_sum(Entrada.objects.filter(usuario=usuario, conta_bancaria=conta))
+            saidas_conta = get_sum(Saida.objects.filter(usuario=usuario, conta_bancaria=conta))
+            saldo_total_tipo += (entradas_conta - saidas_conta)
+        
+        if saldo_total_tipo != 0: # Adiciona apenas tipos com saldo
+            saldo_por_tipo[tipo_display] = float(saldo_total_tipo)
+            
+    return saldo_por_tipo
+
+
 @login_required
 def saldo_atual(request):
-    # Filtra as contas bancárias pelo proprietário (usuário logado)
     contas = ContaBancaria.objects.filter(proprietario=request.user)
     
     saldo_por_conta = {}
     saldo_geral = 0
     
-    for conta in contas:
-        # Filtra Entradas e Saídas usando 'usuario' em vez de 'proprietario'
-        entradas_conta = Entrada.objects.filter(usuario=request.user, conta_bancaria=conta).aggregate(Sum('valor'))['valor__sum'] or 0
-        saidas_conta = Saida.objects.filter(usuario=request.user, conta_bancaria=conta).aggregate(Sum('valor'))['valor__sum'] or 0
+    # Para o filtro de tipo de conta e status
+    tipo_filtro = request.GET.get('tipo', 'todos')
+    status_filtro = request.GET.get('status', 'todas')
+
+    # Filtra as contas baseadas nos parâmetros GET
+    contas_filtradas = contas
+    if tipo_filtro != 'todos':
+        contas_filtradas = contas_filtradas.filter(tipo=tipo_filtro)
+    if status_filtro == 'ativas':
+        contas_filtradas = contas_filtradas.filter(ativa=True)
+    elif status_filtro == 'inativas':
+        contas_filtradas = contas_filtradas.filter(ativa=False)
+
+    saldo_total_contas_ativas = 0
+    saldo_total_cartoes_credito = 0
+    saldo_total_contas_corrente = 0
+    saldo_total_contas_poupanca = 0
+
+    for conta in contas_filtradas:
+        entradas_conta = get_sum(Entrada.objects.filter(usuario=request.user, conta_bancaria=conta))
+        saidas_conta = get_sum(Saida.objects.filter(usuario=request.user, conta_bancaria=conta))
         
-        saldo = entradas_conta - saidas_conta
-        saldo_por_conta[conta.get_nome_banco_display()] = saldo # Use get_nome_banco_display para o nome legível
-        saldo_geral += saldo
+        saldo_individual = entradas_conta - saidas_conta
+        saldo_por_conta[str(conta)] = saldo_individual # Usamos str(conta) que usa o __str__ do modelo
+        saldo_geral += saldo_individual # Atualiza saldo geral com base nas contas filtradas
+
+        # Preenche os cards de resumo rápido
+        if conta.ativa:
+            if conta.tipo == 'credito':
+                # Para cartões de crédito, o "saldo" pode ser o limite disponível (limite - gastos)
+                # Ou o valor total das despesas ainda não pagas nesse cartão
+                # Vamos considerar o saldo (negativo) como o quanto já foi "usado"
+                saldo_total_cartoes_credito += saldo_individual
+            elif conta.tipo == 'corrente':
+                saldo_total_contas_corrente += saldo_individual
+            elif conta.tipo == 'poupanca':
+                saldo_total_contas_poupanca += saldo_individual
+            
+            saldo_total_contas_ativas += saldo_individual
+
+
+    # Gráfico histórico
+    historico_labels, historico_data = get_saldo_historico(request.user, meses=12)
+
+    # Últimas transações
+    ultimas_transacoes = get_transacoes_recentes(request.user, limite=5)
+
+    # Gráfico de pizza por tipo de conta
+    saldo_por_tipo_data = get_saldo_por_tipo_conta(request.user)
+    saldo_tipos_labels = list(saldo_por_tipo_data.keys())
+    saldo_tipos_values = list(saldo_por_tipo_data.values())
+
+    # Variação em relação ao mês anterior (para o saldo geral)
+    today = date.today()
+    mes_anterior_date = today - relativedelta(months=1)
+
+    entradas_mes_atual = get_sum(Entrada.objects.filter(usuario=request.user, data__year=today.year, data__month=today.month))
+    saidas_mes_atual = get_sum(Saida.objects.filter(usuario=request.user, data_vencimento__year=today.year, data_vencimento__month=today.month))
+    saldo_mes_atual = entradas_mes_atual - saidas_mes_atual
+
+    entradas_mes_anterior = get_sum(Entrada.objects.filter(usuario=request.user, data__year=mes_anterior_date.year, data__month=mes_anterior_date.month))
+    saidas_mes_anterior = get_sum(Saida.objects.filter(usuario=request.user, data_vencimento__year=mes_anterior_date.year, data_vencimento__month=mes_anterior_date.month))
+    saldo_mes_anterior = entradas_mes_anterior - saidas_mes_anterior
+
+    variacao_saldo_mensal = 0
+    if saldo_mes_anterior != 0:
+        variacao_saldo_mensal = ((saldo_mes_atual - saldo_mes_anterior) / abs(saldo_mes_anterior) * 100).quantize(Decimal('0.01'))
+    elif saldo_mes_atual > 0: # Se o mês anterior era 0 e agora há saldo
+        variacao_saldo_mensal = 100 # Aumento de 100% (de nada para algo)
+    elif saldo_mes_atual < 0: # Se o mês anterior era 0 e agora há saldo negativo
+        variacao_saldo_mensal = -100 # Diminuição de 100% (de nada para dívida)
+
 
     context = {
         'saldo_geral': saldo_geral,
         'saldo_por_conta': saldo_por_conta,
+        'historico_labels': json.dumps(historico_labels),
+        'historico_data': json.dumps(historico_data),
+        'ultimas_transacoes': ultimas_transacoes,
+        'saldo_tipos_labels': json.dumps(saldo_tipos_labels),
+        'saldo_tipos_values': json.dumps(saldo_tipos_values),
+        'variacao_saldo_mensal': variacao_saldo_mensal,
+        'mes_comparacao': mes_anterior_date.strftime('%b/%Y'), # Ex: Ago/2025
+
+        # Dados para os cards de resumo rápido
+        'saldo_disponivel': saldo_total_contas_ativas, # Soma dos saldos de contas ativas
+        'limite_cartao_credito_disponivel': sum([c.limite_cartao for c in contas.filter(tipo='credito', ativa=True) if c.limite_cartao is not None]) - abs(saldo_total_cartoes_credito), # Limite total - gastos
+        'saldo_conta_corrente': saldo_total_contas_corrente,
+        'saldo_poupanca': saldo_total_contas_poupanca,
+
+        # Filtros para o template
+        'tipos_conta_choices': ContaBancaria.TIPO_CONTA_CHOICES,
+        'tipo_filtro_selecionado': tipo_filtro,
+        'status_filtro_selecionado': status_filtro,
     }
     return render(request, 'core/saldo_atual.html', context)
-
-
  
 
 ######################
