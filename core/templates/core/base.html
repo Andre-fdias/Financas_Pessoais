@@ -198,6 +198,13 @@
                         </span>
                         Receitas
                     </a>
+                    {# Adicione este link normal #}
+                    <a href="{% url 'core:transferencia_list' %}" class="nav-link flex items-center px-4 py-3 rounded-xl hover:bg-yellow-100/50 hover:text-yellow-800 transition group">
+                        <span class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center mr-3 group-hover:bg-yellow-200 transition">
+                            <i class="fas fa-exchange-alt text-yellow-600"></i>
+                        </span>
+                        Transferir
+                    </a>
                     <a href="{% url 'core:saida_list' %}" class="nav-link flex items-center px-4 py-3 rounded-xl hover:bg-red-100/50 hover:text-red-800 transition group">
                         <span class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mr-3 group-hover:bg-red-200 transition">
                             <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -43,7 +43,9 @@ urlpatterns = [
    # path('get-subcategorias/', views.get_subcategorias, name='get_subcategorias'), # Adicionado
     path('extrato/', views.extrato_completo, name='extrato_completo'), # Adicionado
     path('saldo/', views.saldo_atual, name='saldo_atual'), # Adicionado
-
+# urls.py
+    path('api/transacao/<int:pk>/detalhes/', views.transacao_detalhes, name='transacao_detalhes'),
+    path('api/transacao/<int:pk>/marcar-pago/', views.marcar_como_pago, name='marcar_como_pago'),
     # URLs para Categorias e Subcategorias (se existirem)
     # path('categorias/', views.categoria_list, name='categoria_list'),
     # path('categorias/nova/', views.categoria_create, name='categoria_create'),
@@ -55,5 +57,13 @@ urlpatterns = [
     # path('subcategorias/<int:pk>/editar/', views.subcategoria_update, name='subcategoria_update'),
     # path('subcategorias/<int:pk>/excluir/', views.subcategoria_delete, name='subcategoria_delete'),
 
-]
 
+    
+    
+    # URLs para Transferências (CRUD completo)
+    path('transferencias/', views.transferencia_list, name='transferencia_list'),
+    path('transferencias/nova/', views.transferencia_create, name='transferencia_create'),
+    path('transferencias/<int:pk>/editar/', views.transferencia_edit, name='transferencia_edit'),
+    path('transferencias/<int:pk>/excluir/', views.transferencia_delete, name='transferencia_delete'),
+    path('get-account-balance/<int:pk>/', views.get_account_balance, name='get_account_balance'),
+]

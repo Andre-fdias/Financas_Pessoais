@@ -1,5 +1,5 @@
 {% extends 'core/base.html' %}
-{% load currency_filters %} {# Certifique-se de que este filtro customizado está disponível #}
+{% load currency_filters %}
 
 {% block title %}Saldo Atual{% endblock %}
 
@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Chart.js CDN (já no base.html, mas mantido para clareza) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Datalabels Plugin CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
     <style>
         /* Estilos base do painel e outros elementos */
@@ -116,33 +118,70 @@
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-4xl font-extrabold text-gray-800 dark:text-gray-100 mb-8 text-center">Meu Saldo Financeiro</h1>
 
-        <!-- Filtros de Conta -->
-        <div class="glass-panel p-6 mb-8 shadow-lg">
-            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Filtrar Contas</h2>
-            <form id="filter-form" method="GET" action="{% url 'core:saldo_atual' %}" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label for="tipo-filtro" class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Tipo de Conta</label>
-                    <select id="tipo-filtro" name="tipo" class="form-input w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <option value="todos" {% if tipo_filtro_selecionado == 'todos' %}selected{% endif %}>Todos</option>
-                        {% for type_code, type_display in tipos_conta_choices %}
-                            <option value="{{ type_code }}" {% if tipo_filtro_selecionado == type_code %}selected{% endif %}>{{ type_display }}</option>
-                        {% endfor %}
-                    </select>
+        <!-- Painel de Filtros -->
+        <div class="bg-gray-100 rounded-xl shadow-lg p-6 my-8 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 dark:text-white">Filtrar Contas</h2>
+
+            <!-- Linha 1: Tipo de Conta -->
+            <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600 mb-6">
+                <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Tipo de Conta</label>
+                <div class="flex flex-wrap gap-2">
+                    <a href="?tipo=todos{% if status_filtro_selecionado %}&status={{ status_filtro_selecionado }}{% endif %}"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                               {% if tipo_filtro_selecionado == 'todos' %}
+                                   bg-green-600 text-white shadow
+                               {% else %}
+                                   bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                               {% endif %}">
+                        Todos
+                    </a>
+                    {% for type_code, type_display in tipos_conta_choices %}
+                        <a href="?tipo={{ type_code }}{% if status_filtro_selecionado %}&status={{ status_filtro_selecionado }}{% endif %}"
+                           class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                                   {% if tipo_filtro_selecionado == type_code %}
+                                       bg-green-600 text-white shadow
+                                   {% else %}
+                                       bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                                   {% endif %}">
+                            {{ type_display }}
+                        </a>
+                    {% endfor %}
                 </div>
-                <div>
-                    <label for="status-filtro" class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Status da Conta</label>
-                    <select id="status-filtro" name="status" class="form-input w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <option value="todas" {% if status_filtro_selecionado == 'todas' %}selected{% endif %}>Todas</option>
-                        <option value="ativas" {% if status_filtro_selecionado == 'ativas' %}selected{% endif %}>Ativas</option>
-                        <option value="inativas" {% if status_filtro_selecionado == 'inativas' %}selected{% endif %}>Inativas</option>
-                    </select>
+            </div>
+
+            <!-- Linha 2: Status da Conta -->
+            <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+                <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Status da Conta</label>
+                <div class="flex flex-wrap gap-2">
+                    <a href="?status=todas{% if tipo_filtro_selecionado %}&tipo={{ tipo_filtro_selecionado }}{% endif %}"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                               {% if status_filtro_selecionado == 'todas' %}
+                                   bg-green-600 text-white shadow
+                               {% else %}
+                                   bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                               {% endif %}">
+                        Todas
+                    </a>
+                    <a href="?status=ativas{% if tipo_filtro_selecionado %}&tipo={{ tipo_filtro_selecionado }}{% endif %}"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                               {% if status_filtro_selecionado == 'ativas' %}
+                                   bg-green-600 text-white shadow
+                               {% else %}
+                                   bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                               {% endif %}">
+                        Ativas
+                    </a>
+                    <a href="?status=inativas{% if tipo_filtro_selecionado %}&tipo={{ tipo_filtro_selecionado }}{% endif %}"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                               {% if status_filtro_selecionado == 'inativas' %}
+                                   bg-green-600 text-white shadow
+                               {% else %}
+                                   bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                               {% endif %}">
+                        Inativas
+                    </a>
                 </div>
-                <div class="md:col-span-2 flex justify-end">
-                    <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out">
-                        Aplicar Filtros
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
 
 
@@ -280,8 +319,16 @@
                 </div>
             </div>
 
-            <!-- Gráfico Histórico: Evolução do Saldo -->
+            <!-- NOVO: Gráfico de Pizza: Entradas por Forma de Recebimento -->
             <div class="glass-panel p-6 shadow-md rounded-lg">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Entradas por Forma de Recebimento</h2>
+                <div class="chart-container">
+                    <canvas id="entradasFormaRecebimentoChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Gráfico Histórico: Evolução do Saldo -->
+            <div class="glass-panel p-6 shadow-md rounded-lg col-span-full"> {# col-span-full para ocupar a largura total #}
                 <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Evolução do Saldo (Últimos 12 meses)</h2>
                 <div class="chart-container">
                     <canvas id="historicoSaldoChart"></canvas>
@@ -344,14 +391,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Função para formatar moeda (já definida aqui para garantir que esteja acessível)
             function formatCurrency(value) {
-                // TESTE: Adiciona um log no console para verificar se a função está sendo chamada e retornando o formato esperado.
-                console.log('Testando formatCurrency para 4500:', new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }).format(4500)); // Deve imprimir "R$ 4.500,00"
-
                 return new Intl.NumberFormat('pt-BR', {
                     style: 'currency',
                     currency: 'BRL',
@@ -365,6 +404,11 @@
             const historicoData = {{ historico_data|safe }};
             const saldoTiposLabels = {{ saldo_tipos_labels|safe }};
             const saldoTiposValues = {{ saldo_tipos_values|safe }};
+
+            // NOVO: Dados para o gráfico de entradas por forma de recebimento
+            const entradasFormaRecebimentoLabels = {{ entradas_forma_recebimento_labels|safe }};
+            const entradasFormaRecebimentoValues = {{ entradas_forma_recebimento_values|safe }};
+
 
             // Gráfico Histórico de Saldo (Linha)
             const historicoSaldoCtx = document.getElementById('historicoSaldoChart').getContext('2d');
@@ -455,6 +499,61 @@
                 });
             } else {
                 saldoPorTipoCtx.canvas.parentNode.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Não há dados suficientes para este gráfico. Cadastre contas e transações!</p>';
+            }
+
+ // NOVO: Gráfico de Pizza: Entradas por Forma de Recebimento
+            const entradasFormaRecebimentoCtx = document.getElementById('entradasFormaRecebimentoChart').getContext('2d');
+            if (entradasFormaRecebimentoLabels.length > 0) {
+                new Chart(entradasFormaRecebimentoCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: entradasFormaRecebimentoLabels,
+                        datasets: [{
+                            data: entradasFormaRecebimentoValues,
+                            backgroundColor: [
+                                '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b', '#22c55e', '#7dd3fc', '#a855f7', '#ec4899', '#fcd34d'
+                            ], // Cores diferentes para distinção
+                            hoverOffset: 4,
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.raw !== null) {
+                                            label += formatCurrency(context.raw);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            },
+                            datalabels: { // Configuração para exibir o valor diretamente na fatia
+                                color: '#fff',
+                                formatter: function(value, context) {
+                                    return formatCurrency(value);
+                                },
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                },
+                                textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                                textShadowBlur: 4
+                            }
+                        }
+                    }
+                });
+            } else {
+                entradasFormaRecebimentoCtx.canvas.parentNode.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Não há dados de entradas por forma de recebimento suficientes para este gráfico.</p>';
             }
 
             // Função para exportar dados (placeholder por enquanto)

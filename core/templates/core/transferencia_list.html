@@ -1,0 +1,887 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load currency_filters %}
+{% load widget_tweaks %}
+{% load custom_filters %}
+
+{% block title %}Transferências - {{ mes_atual_nome }} {{ ano_atual }}{% endblock %}
+
+{% block extra_head %}
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js CDN para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Estilos base do painel e outros elementos */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right, #ece9e6, #ffffff);
+        }
+        .glass-panel {
+            background-color: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        @supports not (backdrop-filter: blur(16px)) {
+            .glass-panel {
+                background-color: rgba(255, 255, 255, 0.9);
+            }
+        }
+        
+        .valor-positivo {
+            background-color: #f0fdf4;
+            color: #166534;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+        
+        .valor-negativo {
+            background-color: #fef2f2;
+            color: #b91c1c;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+
+        .dark .valor-positivo {
+            background-color: #052e16;
+            color: #bbf7d0;
+        }
+        
+        .dark .valor-negativo {
+            background-color: #450a0a;
+            color: #fca5a5;
+        }
+
+        /* Estilos do Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            max-width: 90%;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .dark .modal-content {
+            background-color: #1f2937;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .success-message {
+            display: none;
+            background-color: #10b981;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            text-align: center;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+        }
+
+        .transfer-table-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .saldo-card {
+            transition: all 0.3s ease;
+        }
+        .saldo-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Estilos do formulário */
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .dark .form-input {
+            background-color: #374151;
+            border-color: #4b5563;
+            color: white;
+        }
+        
+        .dark .form-input:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+        
+        .dark .form-label {
+            color: #d1d5db;
+        }
+        
+        .form-error {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+        
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="glass-panel min-h-screen p-8 flex flex-col space-y-6">
+<!-- Cabeçalho e Botão -->
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Transferências Internas</h1>
+        <h2 class="text-xl text-gray-600 dark:text-gray-300">{{ mes_atual_nome }} {{ ano_atual }}</h2>
+    </div>
+    <button id="openTransferModalBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg inline-flex items-center shadow-md hover:shadow-lg transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+        </svg>
+        Nova Transferência
+    </button>
+</div>
+
+<!-- Modal Overlay para Transferências -->
+<div id="transferModalOverlay" class="modal-overlay hidden">
+    <div id="transferModalContent" class="modal-content"></div>
+</div>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Card Total Transferências -->
+        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-blue-500 dark:bg-gray-800">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Total Transferido</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ total_transferencias|br_currency }}</p>
+                </div>
+                <div class="bg-blue-100 p-2 rounded-lg text-blue-600 dark:bg-blue-900 dark:text-blue-200">
+                    <i class="fas fa-exchange-alt text-2xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center">
+                <span class="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full dark:bg-blue-900 dark:text-blue-200">
+                    {{ transfers|length }} transferências
+                </span>
+            </div>
+        </div>
+
+        <!-- Card Maior Transferência -->
+        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-green-500 dark:bg-gray-800">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Maior Transferência</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ maior_transferencia.valor|br_currency|default:"0,00" }}</p>
+                </div>
+                <div class="bg-green-100 p-2 rounded-lg text-green-600 dark:bg-green-900 dark:text-green-200">
+                    <i class="fas fa-arrow-up text-2xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <span class="text-xs font-medium bg-green-100 text-green-800 px-2 py-1 rounded-full dark:bg-green-900 dark:text-green-200">
+                    {{ maior_transferencia.conta_origem_display|default:"-" }} → {{ maior_transferencia.conta_destino_display|default:"-" }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Card Média Transferências -->
+        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-purple-500 dark:bg-gray-800">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Média por Transferência</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white"> {{ media_transferencias|br_currency|default:"0,00" }}</p>
+                </div>
+                <div class="bg-purple-100 p-2 rounded-lg text-purple-600 dark:bg-purple-900 dark:text-purple-200">
+                    <i class="fas fa-chart-line text-2xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <span class="text-xs font-medium bg-purple-100 text-purple-800 px-2 py-1 rounded-full dark:bg-purple-900 dark:text-purple-200">
+                    {{ transfers|length }} transferências
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Painel de Saldos das Contas -->
+    <div class="bg-gray-100 rounded-xl shadow-lg p-6 my-8 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4 dark:text-white">Saldos das Contas</h2>
+        <!-- transferencia_list.html - Atualizar a parte dos cards de saldo -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for conta_id, conta_info in saldos_contas.items %}
+            <div class="saldo-card bg-white rounded-lg p-4 shadow-md dark:bg-gray-700">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h3 class="font-semibold text-gray-800 dark:text-white">{{ conta_info.banco_nome }}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ conta_info.agencia_numero }}</p>
+                    </div>
+                    <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-300">
+                        {{ conta_info.tipo }}
+                    </span>
+                </div>
+                <p class="text-2xl font-bold {% if conta_info.saldo >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    R$ <span class="formatted-number">{{ conta_info.saldo|floatformat:2 }}</span>
+                </p>
+            </div>
+            {% empty %}
+            <div class="col-span-full text-center text-gray-500 dark:text-gray-400">
+                Nenhuma conta ativa encontrada
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Painel de Filtros -->
+    <div class="bg-gray-100 rounded-xl shadow-lg p-6 my-8 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4 dark:text-white">Filtrar Transferências</h2>
+        
+        <!-- Linha 1: Ano -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Filtro Ano -->
+            <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+                <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Ano</label>
+                <div class="flex flex-wrap gap-2">
+                    {% for ano in anos_disponiveis %}
+                    <a href="?ano={{ ano }}&mes={{ mes_selecionado }}"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                              {% if ano == ano_selecionado %}
+                                  bg-blue-600 text-white shadow
+                              {% else %}
+                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                              {% endif %}">
+                        {{ ano }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Linha 2: Mês -->
+         <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+            <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Mês</label>
+            <div class="flex flex-wrap gap-2">
+                <a href="?ano={{ ano_selecionado }}&mes=todos"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                          {% if mes_selecionado == 'todos' %}
+                              bg-blue-600 text-white shadow
+                          {% else %}
+                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                          {% endif %}">
+                    Todos
+                </a>
+                {% for mes_num, mes_nome in meses %}
+                <a href="?ano={{ ano_selecionado }}&mes={{ mes_num|stringformat:'02d' }}"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                          {% if mes_selecionado == mes_num|stringformat:'02d' %}
+                              bg-blue-600 text-white shadow
+                          {% else %}
+                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                          {% endif %}">
+                    {{ mes_nome|slice:":3" }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Transferências -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden mt-8 dark:bg-gray-800">
+        <div class="overflow-x-auto transfer-table-container">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-indigo-600 dark:bg-indigo-800">
+                    <tr>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Data</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Valor</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Conta de Origem</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Conta de Destino</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Observação</th>
+                        <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                    {% for transfer in transfers %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-150 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="font-medium text-gray-900 dark:text-white">{{ transfer.saida_obj.data_lancamento|date:"d/m/Y" }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600">
+                            <span class="valor-negativo">
+                                R$ {{ transfer.saida_obj.valor|floatformat:2 }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {{ transfer.conta_origem_display }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {{ transfer.conta_destino_display }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                            {{ transfer.saida_obj.observacao|default:"-" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-y-2">
+                            <button class="text-blue-600 hover:text-blue-800 transition-colors flex items-center justify-end dark:text-blue-400 dark:hover:text-blue-300 edit-transfer-btn"
+                                data-saida-pk="{{ transfer.saida_obj.pk }}"
+                                data-conta-origem="{{ transfer.saida_obj.conta_bancaria.pk }}"
+                                data-conta-destino="{{ transfer.entrada_obj.conta_bancaria.pk }}"
+                                data-valor="{{ transfer.saida_obj.valor|floatformat:2 }}"
+                                data-data="{{ transfer.saida_obj.data_lancamento|date:'Y-m-d' }}"
+                                data-observacao="{{ transfer.saida_obj.observacao|default:'' }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Editar
+                            </button>
+                            <button class="text-red-600 hover:text-red-800 transition-colors flex items-center justify-end dark:text-red-400 dark:hover:text-red-300 delete-transfer-btn"
+                                data-saida-pk="{{ transfer.saida_obj.pk }}"
+                                data-transfer-info="Transferência de R$ {{ transfer.saida_obj.valor|floatformat:2 }} da conta {{ transfer.conta_origem_display }} para {{ transfer.conta_destino_display }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Excluir
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                            Nenhuma transferência encontrada para o período selecionado
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Modal para Excluir Transferência -->
+<div id="deleteTransferModal" class="modal-overlay hidden">
+    <div class="modal-content max-w-md">
+        <div class="bg-white p-6 rounded-lg shadow-xl dark:bg-gray-800">
+            <div class="text-center mb-6">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mt-4 dark:text-white">Confirmar Exclusão</h3>
+                <p class="text-sm text-gray-500 mt-2 dark:text-gray-400" id="deleteTransferMessage">Tem certeza de que deseja excluir esta transferência?</p>
+            </div>
+            
+            <div class="flex justify-center space-x-4">
+                <button type="button" id="cancelDeleteTransferBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition dark:bg-gray-600 dark:text-gray-300">
+                    Cancelar
+                </button>
+                <form id="deleteTransferForm" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">
+                        Excluir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="success-message" id="successMessage">
+    <i class="fas fa-check-circle mr-2"></i>
+    Operação realizada com sucesso!
+</div>
+
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ==============================================
+// FUNÇÕES PRINCIPAIS
+// ==============================================
+
+// Função para obter o token CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Função para mostrar mensagens
+function showDynamicMessage(message, type = 'success') {
+    const messageElement = document.createElement('div');
+    messageElement.className = `fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg text-white font-medium ${
+        type === 'success' ? 'bg-green-600' : 'bg-red-600'
+    }`;
+    messageElement.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2"></i> 
+        ${message}
+    `;
+    document.body.appendChild(messageElement);
+    
+    setTimeout(() => {
+        messageElement.remove();
+    }, 3000);
+}
+
+// Função para formatar moeda (versão melhorada)
+function formatarMoeda(input) {
+    if (!input) return;
+    
+    const cursorPosition = input.selectionStart;
+    const originalValue = input.value;
+    
+    // Remove tudo que não é dígito
+    let valor = input.value.replace(/\D/g, '');
+    
+    // Se estiver vazio, define como zero
+    if (valor === '') {
+        input.value = '0,00';
+        input.setSelectionRange(5, 5);
+        return;
+    }
+    
+    // Remove zeros à esquerda
+    valor = valor.replace(/^0+/, '');
+    if (valor === '') {
+        input.value = '0,00';
+        input.setSelectionRange(5, 5);
+        return;
+    }
+    
+    // Garante que tenha pelo menos 3 dígitos (para centavos)
+    valor = valor.padStart(3, '0');
+    
+    // Separa reais e centavos
+    const reais = valor.slice(0, -2);
+    const centavos = valor.slice(-2);
+    
+    // Formata os reais com separadores de milhar
+    const formattedReais = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    
+    // Atualiza o valor do campo
+    input.value = formattedReais + ',' + centavos;
+    
+    // Reposiciona o cursor
+    const newLength = input.value.length;
+    const oldLength = originalValue.length;
+    const lengthDiff = newLength - oldLength;
+    
+    let newCursorPosition = cursorPosition + lengthDiff;
+    newCursorPosition = Math.max(0, Math.min(newCursorPosition, newLength));
+    
+    input.setSelectionRange(newCursorPosition, newCursorPosition);
+}
+
+// Função para converter valor formatado para número
+function parseMoeda(valorFormatado) {
+    if (!valorFormatado) return 0;
+    
+    // Remove pontos de milhar e substitui vírgula por ponto
+    const valorNumerico = valorFormatado.replace(/\./g, '').replace(',', '.');
+    
+    // Converte para número
+    const valor = parseFloat(valorNumerico);
+    
+    return isNaN(valor) ? 0 : valor;
+}
+
+// ==============================================
+// GERENCIAMENTO DO MODAL
+// ==============================================
+
+// Função para abrir o modal
+function openTransferModal() {
+    const modalOverlay = document.getElementById('transferModalOverlay');
+    const modalContent = document.getElementById('transferModalContent');
+    
+    fetch("{% url 'core:transferencia_create' %}", {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.form_html) {
+            modalContent.innerHTML = data.form_html;
+            modalOverlay.classList.remove('hidden');
+            setTimeout(() => {
+                modalOverlay.classList.add('show');
+            }, 10);
+            
+            // Inicializa eventos do formulário
+            initTransferForm();
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao carregar formulário:', error);
+        showDynamicMessage('Erro ao carregar formulário de transferência', 'error');
+    });
+}
+
+// Função para fechar o modal
+function closeTransferModal() {
+    const modalOverlay = document.getElementById('transferModalOverlay');
+    const modalContent = document.getElementById('transferModalContent');
+    
+    modalOverlay.classList.remove('show');
+    setTimeout(() => {
+        modalOverlay.classList.add('hidden');
+        modalContent.innerHTML = '';
+    }, 300);
+}
+
+// ==============================================
+// INICIALIZAÇÃO DO FORMULÁRIO
+// ==============================================
+
+function initTransferForm() {
+    const transferForm = document.getElementById('transfer-form-modal');
+    const closeModalBtns = document.querySelectorAll('.close-modal');
+    const valorInput = document.querySelector('#id_valor');
+    const contaOrigemSelect = document.querySelector('#id_conta_origem');
+    const saldoOrigemDisplay = document.querySelector('#saldo-origem-display');
+    
+    // Event listeners para fechar o modal
+    closeModalBtns.forEach(btn => {
+        btn.addEventListener('click', closeTransferModal);
+    });
+    
+    // Formatação de moeda
+    if (valorInput) {
+        // Formatar valor inicial
+        if (valorInput.value) {
+            formatarMoeda(valorInput);
+        } else {
+            valorInput.value = '0,00';
+        }
+        
+        // Event listeners para formatação
+        valorInput.addEventListener('input', () => formatarMoeda(valorInput));
+        valorInput.addEventListener('blur', () => formatarMoeda(valorInput));
+        valorInput.addEventListener('focus', () => valorInput.select());
+        
+        // Validação de entrada
+        valorInput.addEventListener('keypress', (e) => {
+            // Permite apenas números e teclas de controle
+            const allowedKeys = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+                               'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'];
+            if (!allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+            }
+        });
+    }
+    
+    // Buscar saldo da conta de origem
+    if (contaOrigemSelect && saldoOrigemDisplay) {
+        contaOrigemSelect.addEventListener('change', function() {
+            const selectedAccountId = this.value;
+            if (selectedAccountId) {
+                fetchAccountBalance(selectedAccountId, saldoOrigemDisplay);
+            } else {
+                saldoOrigemDisplay.textContent = 'Selecione uma conta para ver o saldo disponível';
+                saldoOrigemDisplay.className = 'mt-2 text-sm font-medium text-gray-600 dark:text-gray-400';
+            }
+        });
+        
+        // Buscar saldo inicial se já houver seleção
+        if (contaOrigemSelect.value) {
+            fetchAccountBalance(contaOrigemSelect.value, saldoOrigemDisplay);
+        }
+    }
+    
+    // Submissão do formulário
+    if (transferForm) {
+        transferForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validar campos
+            if (!validateTransferForm()) {
+                return;
+            }
+            
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processando...';
+            
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showDynamicMessage(data.message, 'success');
+                    closeTransferModal();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    if (data.errors) {
+                        displayFormErrors(transferForm, data.errors);
+                    } else {
+                        showDynamicMessage(data.message || 'Erro ao realizar transferência', 'error');
+                    }
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                showDynamicMessage('Erro ao realizar transferência', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
+}
+
+// ==============================================
+// FUNÇÕES AUXILIARES
+// ==============================================
+
+// Buscar saldo da conta
+function fetchAccountBalance(accountId, displayElement) {
+    displayElement.textContent = "Carregando saldo...";
+    displayElement.className = 'mt-2 text-sm font-medium text-gray-600 dark:text-gray-400';
+    
+    fetch(`/get-account-balance/${accountId}/`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const saldo = parseFloat(data.saldo);
+            displayElement.textContent = `Saldo disponível: R$ ${saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            displayElement.className = saldo >= 0 
+                ? 'mt-2 text-sm font-medium text-green-600 dark:text-green-400'
+                : 'mt-2 text-sm font-medium text-red-600 dark:text-red-400';
+        } else {
+            displayElement.textContent = 'Erro ao carregar saldo';
+            displayElement.className = 'mt-2 text-sm font-medium text-red-600 dark:text-red-400';
+        }
+    })
+    .catch(error => {
+        displayElement.textContent = 'Erro ao carregar saldo';
+        displayElement.className = 'mt-2 text-sm font-medium text-red-600 dark:text-red-400';
+    });
+}
+
+// Validar formulário
+function validateTransferForm() {
+    let isValid = true;
+    
+    // Limpar erros anteriores
+    document.querySelectorAll('.form-error').forEach(el => {
+        el.classList.add('hidden');
+    });
+    
+    document.querySelectorAll('.border-red-500').forEach(el => {
+        el.classList.remove('border-red-500');
+    });
+    
+    // Validar conta de origem
+    const contaOrigem = document.querySelector('#id_conta_origem');
+    if (!contaOrigem.value) {
+        document.getElementById('conta_origem_error').textContent = 'Selecione a conta de origem';
+        document.getElementById('conta_origem_error').classList.remove('hidden');
+        contaOrigem.classList.add('border-red-500');
+        isValid = false;
+    }
+    
+    // Validar conta de destino
+    const contaDestino = document.querySelector('#id_conta_destino');
+    if (!contaDestino.value) {
+        document.getElementById('conta_destino_error').textContent = 'Selecione a conta de destino';
+        document.getElementById('conta_destino_error').classList.remove('hidden');
+        contaDestino.classList.add('border-red-500');
+        isValid = false;
+    }
+    
+    // Validar se as contas são diferentes
+    if (contaOrigem.value && contaDestino.value && contaOrigem.value === contaDestino.value) {
+        document.getElementById('conta_destino_error').textContent = 'A conta de destino não pode ser a mesma que a conta de origem';
+        document.getElementById('conta_destino_error').classList.remove('hidden');
+        contaDestino.classList.add('border-red-500');
+        isValid = false;
+    }
+    
+    // Validar valor
+    const valorInput = document.querySelector('#id_valor');
+    const valor = parseMoeda(valorInput.value);
+    if (valor <= 0) {
+        document.getElementById('valor_error').textContent = 'O valor deve ser maior que zero';
+        document.getElementById('valor_error').classList.remove('hidden');
+        valorInput.classList.add('border-red-500');
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+// Exibir erros do formulário
+function displayFormErrors(formElement, errors) {
+    // Limpar erros anteriores
+    formElement.querySelectorAll('.form-error').forEach(el => {
+        el.classList.add('hidden');
+    });
+    
+    formElement.querySelectorAll('.border-red-500').forEach(el => {
+        el.classList.remove('border-red-500');
+    });
+    
+    // Exibir novos erros
+    for (const field in errors) {
+        const errorElement = document.getElementById(`${field}_error`);
+        const fieldElement = formElement.querySelector(`[name="${field}"]`);
+        
+        if (errorElement && fieldElement) {
+            errorElement.textContent = errors[field].join(', ');
+            errorElement.classList.remove('hidden');
+            fieldElement.classList.add('border-red-500');
+        }
+    }
+}
+
+// Formatar números da página
+function formatarNumerosPagina() {
+    document.querySelectorAll('.formatted-number').forEach(element => {
+        const value = parseFloat(element.textContent);
+        if (!isNaN(value)) {
+            element.textContent = value.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+    });
+}
+
+// ==============================================
+// INICIALIZAÇÃO DA PÁGINA
+// ==============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar modal
+    const openTransferBtn = document.getElementById('openTransferModalBtn');
+    if (openTransferBtn) {
+        openTransferBtn.addEventListener('click', openTransferModal);
+    }
+    
+    // Fechar modal clicando fora
+    const modalOverlay = document.getElementById('transferModalOverlay');
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                closeTransferModal();
+            }
+        });
+    }
+    
+    // Formatar números da página
+    formatarNumerosPagina();
+    
+    // Configurar botões de edição e exclusão existentes
+    document.querySelectorAll('.edit-transfer-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const transferId = this.getAttribute('data-saida-pk');
+            // Implementar edição aqui
+            console.log('Editar transferência:', transferId);
+        });
+    });
+    
+    document.querySelectorAll('.delete-transfer-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const transferId = this.getAttribute('data-saida-pk');
+            // Implementar exclusão aqui
+            console.log('Excluir transferência:', transferId);
+        });
+    });
+    
+    // Tecla ESC para fechar modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeTransferModal();
+        }
+    });
+});
+</script>
+{% endblock %}
+

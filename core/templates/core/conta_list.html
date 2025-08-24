@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load currency_filters %}
 
 {% block title %}Minhas Contas Bancárias{% endblock %}
 
@@ -317,74 +318,71 @@
     </div>
 
     <!-- Painel de Filtros -->
-    <div class="bg-gray-100 rounded-xl shadow-lg p-6 my-8 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-        <h2 class="text-lg font-semibold text-gray-700 mb-4 dark:text-white">Filtrar Contas</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Filtro por Tipo -->
-            <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Tipo de Conta</label>
-                <div class="flex flex-wrap gap-2">
-                    <a href="?status={{ status_filtro }}"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if not tipo_filtro %}
-                                  bg-blue-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
-                        Todos
-                    </a>
-                    {% for code, name in tipos_conta %}
-                    <a href="?tipo={{ code }}&status={{ status_filtro }}"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if tipo_filtro == code %}
-                                  bg-blue-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
-                        {{ name }}
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-            
-            <!-- Filtro por Status -->
-            <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Status</label>
-                <div class="flex flex-wrap gap-2">
-                    <a href="?tipo={{ tipo_filtro }}"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if not status_filtro %}
-                                  bg-blue-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
-                        Todos
-                    </a>
-                    <a href="?tipo={{ tipo_filtro }}&status=ativa"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if status_filtro == 'ativa' %}
-                                  bg-green-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
-                        Ativas
-                    </a>
-                    <a href="?tipo={{ tipo_filtro }}&status=inativa"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if status_filtro == 'inativa' %}
-                                  bg-orange-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
-                        Inativas
-                    </a>
-                </div>
-            </div>
+<div class="bg-gray-100 rounded-xl shadow-lg p-6 my-8 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+    <h2 class="text-lg font-semibold text-gray-700 mb-4 dark:text-white">Filtrar Contas</h2>
+
+    <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600 mb-6">
+        <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Tipo de Conta</label>
+        <div class="flex flex-wrap gap-2">
+            <a href="?status={{ status_filtro }}"
+               class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                      {% if not tipo_filtro %}
+                          bg-blue-600 text-white shadow
+                      {% else %}
+                          bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                      {% endif %}">
+                Todos
+            </a>
+            {% for code, name in tipos_conta %}
+            <a href="?tipo={{ code }}&status={{ status_filtro }}"
+               class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                      {% if tipo_filtro == code %}
+                          bg-blue-600 text-white shadow
+                      {% else %}
+                          bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                      {% endif %}">
+                {{ name }}
+            </a>
+            {% endfor %}
         </div>
     </div>
 
+    <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+        <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Status</label>
+        <div class="flex flex-wrap gap-2">
+            <a href="?tipo={{ tipo_filtro }}"
+               class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                      {% if not status_filtro %}
+                          bg-blue-600 text-white shadow
+                      {% else %}
+                          bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                      {% endif %}">
+                Todos
+            </a>
+            <a href="?tipo={{ tipo_filtro }}&status=ativa"
+               class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                      {% if status_filtro == 'ativa' %}
+                          bg-green-600 text-white shadow
+                      {% else %}
+                          bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                      {% endif %}">
+                Ativas
+            </a>
+            <a href="?tipo={{ tipo_filtro }}&status=inativa"
+               class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                      {% if status_filtro == 'inativa' %}
+                          bg-orange-600 text-white shadow
+                      {% else %}
+                          bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                      {% endif %}">
+                Inativas
+            </a>
+        </div>
+    </div>
+</div>
+
     <!-- Tabela de Contas -->
+<!-- Tabela de Contas -->
     <div class="bg-white rounded-xl shadow-lg overflow-hidden dark:bg-gray-800">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -393,6 +391,7 @@
                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Banco</th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Agência/Conta</th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Tipo</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Saldo</th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Status</th>
                         <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider">Ações</th>
                     </tr>
@@ -423,6 +422,9 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                             {{ conta.get_tipo_display }}
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {% if conta.saldo_atual >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                         {{ conta.saldo_atual|br_currency}}
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             {% if conta.ativa %}
                                 <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
@@ -434,40 +436,40 @@
                                 </span>
                             {% endif %}
                         </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex flex-col items-center justify-center space-y-2">
-                            <a href="#"
-                                class="text-blue-600 hover:text-blue-800 transition-colors flex items-center dark:text-blue-400 dark:hover:text-blue-300 edit-conta-btn"
-                                data-conta-id="{{ conta.pk }}"
-                                data-conta-banco="{{ conta.nome_banco }}"
-                                data-conta-tipo="{{ conta.tipo }}"
-                                data-conta-agencia="{{ conta.agencia|default:'' }}"
-                                data-conta-numero="{{ conta.numero_conta|default:'' }}"
-                                data-conta-saldo="{{ conta.saldo_atual }}"
-                                data-conta-numero-cartao="{{ conta.numero_cartao|default:'' }}"
-                                data-conta-limite="{{ conta.limite_cartao|default:'' }}"
-                                data-conta-fechamento="{{ conta.dia_fechamento_fatura|default:'' }}"
-                                data-conta-vencimento="{{ conta.dia_vencimento_fatura|default:'' }}"
-                                data-conta-ativa="{{ conta.ativa|yesno:'True,False' }}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                                Editar
-                            </a>
-                            <button class="text-red-600 hover:text-red-800 transition-colors flex items-center dark:text-red-400 dark:hover:text-red-300 delete-conta-btn"
-                                data-conta-id="{{ conta.pk }}"
-                                data-conta-nome="{{ conta.get_nome_banco_display }}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                                Excluir
-                            </button>
-                        </div>
-                    </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex flex-col items-center justify-center space-y-2">
+                                <a href="#"
+                                    class="text-blue-600 hover:text-blue-800 transition-colors flex items-center dark:text-blue-400 dark:hover:text-blue-300 edit-conta-btn"
+                                    data-conta-id="{{ conta.pk }}"
+                                    data-conta-banco="{{ conta.nome_banco }}"
+                                    data-conta-tipo="{{ conta.tipo }}"
+                                    data-conta-agencia="{{ conta.agencia|default:'' }}"
+                                    data-conta-numero="{{ conta.numero_conta|default:'' }}"
+                                    data-conta-saldo="{{ conta.saldo_atual }}"
+                                    data-conta-numero-cartao="{{ conta.numero_cartao|default:'' }}"
+                                    data-conta-limite="{{ conta.limite_cartao|default:'' }}"
+                                    data-conta-fechamento="{{ conta.dia_fechamento_fatura|default:'' }}"
+                                    data-conta-vencimento="{{ conta.dia_vencimento_fatura|default:'' }}"
+                                    data-conta-ativa="{{ conta.ativa|yesno:'True,False' }}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    Editar
+                                </a>
+                                <button class="text-red-600 hover:text-red-800 transition-colors flex items-center dark:text-red-400 dark:hover:text-red-300 delete-conta-btn"
+                                    data-conta-id="{{ conta.pk }}"
+                                    data-conta-nome="{{ conta.get_nome_banco_display }}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Excluir
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                             Nenhuma conta encontrada com os filtros selecionados
                         </td>
                     </tr>

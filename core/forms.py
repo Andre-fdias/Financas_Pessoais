@@ -178,3 +178,84 @@ class SaidaForm(forms.ModelForm):
             cleaned_data['data_vencimento'] = data_lancamento
 
         return cleaned_data
+
+
+
+
+# forms.py - Corrija o TransferenciaForm
+class TransferenciaForm(forms.Form):
+    """
+    Formulário para realizar transferências entre contas bancárias do usuário.
+    """
+    conta_origem = forms.ModelChoiceField(
+        queryset=ContaBancaria.objects.none(),
+        label="Conta de Origem",
+        widget=forms.Select(attrs={'class': 'form-input'}),
+        error_messages={'required': 'Selecione a conta de origem.'}
+    )
+    conta_destino = forms.ModelChoiceField(
+        queryset=ContaBancaria.objects.none(),
+        label="Conta de Destino",
+        widget=forms.Select(attrs={'class': 'form-input'}),
+        error_messages={'required': 'Selecione a conta de destino.'}
+    )
+    valor = forms.DecimalField(  # Alterado de CharField para DecimalField
+        max_digits=15,
+        decimal_places=2,
+        label="Valor da Transferência",
+        widget=forms.NumberInput(attrs={
+            'class': 'form-input currency', 
+            'placeholder': '0,00',
+            'step': '0.01',
+            'min': '0.01'
+        }),
+        error_messages={
+            'required': 'Informe o valor da transferência.',
+            'invalid': 'Valor inválido. Use números com até 2 casas decimais.'
+        }
+    )
+    descricao = forms.CharField(
+        max_length=255,
+        required=False,
+        label="Descrição (Opcional)",
+        widget=forms.TextInput(attrs={
+            'class': 'form-input', 
+            'placeholder': 'Ex: Transferência para Poupança'
+        }),
+        help_text="Uma breve descrição da transferência."
+    )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            # Filtra apenas contas corrente e poupança ativas
+            contas_validas = ContaBancaria.objects.filter(
+                proprietario=user,
+                ativa=True,
+                tipo__in=['corrente', 'poupanca']
+            )
+            self.fields['conta_origem'].queryset = contas_validas
+            self.fields['conta_destino'].queryset = contas_validas
+
+    def clean(self):
+        cleaned_data = super().clean()
+        conta_origem = cleaned_data.get('conta_origem')
+        conta_destino = cleaned_data.get('conta_destino')
+        valor = cleaned_data.get('valor')
+
+        # Validação: Contas de origem e destino não podem ser a mesma
+        if conta_origem and conta_destino and conta_origem == conta_destino:
+            self.add_error('conta_destino', 'A conta de origem e a conta de destino não podem ser a mesma.')
+        
+        # Validação: Saldo suficiente na conta de origem
+        if conta_origem and valor is not None:
+            try:
+                conta_origem_atualizada = ContaBancaria.objects.get(pk=conta_origem.pk)
+                if conta_origem_atualizada.saldo_atual < valor:
+                    formatted_saldo = f"R$ {conta_origem_atualizada.saldo_atual:,.2f}".replace('.', 'X').replace(',', '.').replace('X', ',')
+                    self.add_error('valor', f'Saldo insuficiente na conta de origem. Saldo disponível: {formatted_saldo}')
+            except ContaBancaria.DoesNotExist:
+                self.add_error('conta_origem', 'A conta de origem selecionada não é válida.')
+
+        return cleaned_data

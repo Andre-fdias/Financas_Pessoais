@@ -225,7 +225,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Total Recebido</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ total_entradas|floatformat:2 }}</p>
+                      <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ total_entradas|br_currency }}</p>
                 </div>
                 <div class="bg-green-100 p-2 rounded-lg text-green-600 dark:bg-green-900 dark:text-green-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -245,7 +245,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Receita do Mês</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ entradas_mes_atual|floatformat:2 }}</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ entradas_mes_atual|br_currency }}</p>
                 </div>
                 <div class="bg-blue-100 p-2 rounded-lg text-blue-600 dark:bg-blue-900 dark:text-blue-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -265,7 +265,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Média Mensal</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ media_mensal|floatformat:2 }}</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ media_mensal|br_currency }}</p>
                 </div>
                 <div class="bg-purple-100 p-2 rounded-lg text-purple-600 dark:bg-purple-900 dark:text-purple-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -281,24 +281,25 @@
         </div>
     </div>
 
-    <!-- Painel de Filtros -->
+
+       <!-- Painel de Filtros -->
     <div class="bg-gray-100 rounded-xl shadow-lg p-6 my-8 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
         <h2 class="text-lg font-semibold text-gray-700 mb-4 dark:text-white">Filtrar Receitas</h2>
         
         <!-- Linha 1: Ano e Forma de Recebimento -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <!-- Filtro Ano -->
-            <div>
+            <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
                 <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Ano</label>
                 <div class="flex flex-wrap gap-2">
                     {% for ano in anos_disponiveis %}
                     <a href="?ano={{ ano }}&mes={{ mes_selecionado }}{% if forma_filtro %}&forma={{ forma_filtro }}{% endif %}"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if ano == ano_selecionado %}
-                                  bg-green-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
+                    class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                            {% if ano == ano_selecionado %}
+                                bg-green-600 text-white shadow
+                            {% else %}
+                                bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                            {% endif %}">
                         {{ ano }}
                     </a>
                     {% endfor %}
@@ -306,26 +307,26 @@
             </div>
             
             <!-- Filtro Forma de Recebimento -->
-            <div>
+            <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
                 <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Forma de Recebimento</label>
                 <div class="flex flex-wrap gap-2">
                     <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if not forma_filtro %}
-                                  bg-green-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
+                    class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                            {% if not forma_filtro %}
+                                bg-green-600 text-white shadow
+                            {% else %}
+                                bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                            {% endif %}">
                         Todas
                     </a>
                     {% for forma in FORMA_RECEBIMENTO_CHOICES %}
                     <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}&forma={{ forma.0 }}"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if forma_filtro == forma.0 %}
-                                  bg-green-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
+                    class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                            {% if forma_filtro == forma.0 %}
+                                bg-green-600 text-white shadow
+                            {% else %}
+                                bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                            {% endif %}">
                         {{ forma.1 }}
                     </a>
                     {% endfor %}
@@ -334,26 +335,26 @@
         </div>
         
         <!-- Linha 2: Mês -->
-        <div>
+        <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
             <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Mês</label>
             <div class="flex flex-wrap gap-2">
                 <a href="?ano={{ ano_selecionado }}&mes=todos{% if forma_filtro %}&forma={{ forma_filtro }}{% endif %}"
-                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                          {% if mes_selecionado == 'todos' %}
-                              bg-green-600 text-white shadow
-                          {% else %}
-                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                          {% endif %}">
+                class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                        {% if mes_selecionado == 'todos' %}
+                            bg-green-600 text-white shadow
+                        {% else %}
+                            bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                        {% endif %}">
                     Todos
                 </a>
                 {% for mes_num, mes_nome in meses %}
-                <a href="?ano={{ ano_selecionado }}&mes={{ mes_num }}{% if forma_filtro %}&forma={{ forma_filtro }}{% endif %}"
-                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                          {% if mes_selecionado == mes_num|stringformat:'02d' %}
-                              bg-green-600 text-white shadow
-                          {% else %}
-                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                          {% endif %}">
+                <a href="?ano={{ ano_selecionado }}&mes={{ mes_num|stringformat:'02d' }}{% if forma_filtro %}&forma={{ forma_filtro }}{% endif %}"
+                class="px-3 py-1 rounded-lg text-sm font-medium transition-all
+                        {% if mes_selecionado == mes_num|stringformat:'02d' %}
+                            bg-green-600 text-white shadow
+                        {% else %}
+                            bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                        {% endif %}">
                     {{ mes_nome|slice:":3" }}
                 </a>
                 {% endfor %}
@@ -440,7 +441,7 @@
 <!-- Modal para Adicionar Entrada -->
 <div id="entradaModal" class="modal-overlay hidden">
     <div class="modal-content">
-        <div class="form-container w-full max-w-lg p-8">
+        <div class="form-container w-full max-w-4xl p-8">
             <div class="flex justify-between items-center mb-8">
                 <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Adicionar Entrada</h2>
                 <button type="button" id="closeEntradaModalBtn" class="text-gray-500 hover:text-gray-700">
@@ -450,105 +451,113 @@
                 </button>
             </div>
             
-            <form method="post" id="entradaFormModal" class="space-y-6" action="{% url 'core:entrada_create' %}">
+            <form method="post" id="entradaFormModal" action="{% url 'core:entrada_create' %}">
                 {% csrf_token %}
                 
-                <!-- Descrição -->
-                <div class="input-group">
-                    <label for="id_nome" class="form-label flex items-center">
-                        <i class="fas fa-file-alt mr-2 text-blue-500"></i>
-                        Descrição
-                    </label>
-                    <input type="text" id="id_nome" name="nome" class="form-input" placeholder="Descrição da entrada" required>
-                    <p class="form-error" id="nome_error"></p>
-                </div>
-
-                <!-- Valor -->
-                <div class="input-group">
-                    <label for="id_valor" class="form-label flex items-center">
-                        <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
-                        Valor
-                    </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span class="text-gray-500 sm:text-sm">R$</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Coluna 1 -->
+                    <div class="space-y-6">
+                        <!-- Descrição -->
+                        <div class="input-group">
+                            <label for="id_nome" class="form-label flex items-center">
+                                <i class="fas fa-file-alt mr-2 text-blue-500"></i>
+                                Descrição
+                            </label>
+                            <input type="text" id="id_nome" name="nome" class="form-input" placeholder="Descrição da entrada" required>
+                            <p class="form-error" id="nome_error"></p>
                         </div>
-                        <input type="text" id="id_valor" name="valor" class="form-input pl-10" placeholder="0,00" required>
-                    </div>
-                    <p class="form-error" id="valor_error"></p>
-                </div>
 
-                <!-- Data -->
-                <div class="input-group">
-                    <label for="id_data" class="form-label flex items-center">
-                        <i class="fas fa-calendar-alt mr-2 text-purple-500"></i>
-                        Data
-                    </label>
-                    <input type="date" id="id_data" name="data" class="form-input" required>
-                    <p class="form-error" id="data_error"></p>
-                </div>
+                        <!-- Valor -->
+                        <div class="input-group">
+                            <label for="id_valor" class="form-label flex items-center">
+                                <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+                                Valor
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">R$</span>
+                                </div>
+                                <input type="text" id="id_valor" name="valor" class="form-input pl-10" placeholder="0,00" required>
+                            </div>
+                            <p class="form-error" id="valor_error"></p>
+                        </div>
 
-                <!-- Origem -->
-                <div class="input-group">
-                    <label for="id_local" class="form-label flex items-center">
-                        <i class="fas fa-map-marker-alt mr-2 text-red-500"></i>
-                        Origem
-                    </label>
-                    <input type="text" id="id_local" name="local" class="form-input" placeholder="Origem do recebimento" required>
-                    <p class="form-error" id="local_error"></p>
-                </div>
+                        <!-- Data -->
+                        <div class="input-group">
+                            <label for="id_data" class="form-label flex items-center">
+                                <i class="fas fa-calendar-alt mr-2 text-purple-500"></i>
+                                Data
+                            </label>
+                            <input type="date" id="id_data" name="data" class="form-input" required>
+                            <p class="form-error" id="data_error"></p>
+                        </div>
 
-                <!-- Forma de Recebimento -->
-                <div class="input-group">
-                    <label for="id_forma_recebimento" class="form-label flex items-center">
-                        <i class="fas fa-credit-card mr-2 text-yellow-500"></i>
-                        Forma de Recebimento
-                    </label>
-                    <div class="relative">
-                        <select id="id_forma_recebimento" name="forma_recebimento" class="form-input" required>
-                            <option value="">Selecione a forma de recebimento</option>
-                            {% for code, name in FORMA_RECEBIMENTO_CHOICES %}
-                                <option value="{{ code }}">{{ name }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
-                            <i class="fas fa-chevron-down"></i>
+                        <!-- Origem -->
+                        <div class="input-group">
+                            <label for="id_local" class="form-label flex items-center">
+                                <i class="fas fa-map-marker-alt mr-2 text-red-500"></i>
+                                Origem
+                            </label>
+                            <input type="text" id="id_local" name="local" class="form-input" placeholder="Origem do recebimento" required>
+                            <p class="form-error" id="local_error"></p>
                         </div>
                     </div>
-                    <p class="form-error" id="forma_recebimento_error"></p>
-                </div>
 
-                <!-- Conta Bancária -->
-                <div class="input-group">
-                    <label for="id_conta_bancaria" class="form-label flex items-center">
-                        <i class="fas fa-landmark mr-2 text-indigo-500"></i>
-                        Conta Bancária
-                    </label>
-                    <div class="relative">
-                        <select id="id_conta_bancaria" name="conta_bancaria" class="form-input" required>
-                            <option value="">Selecione a conta bancária</option>
-                            {% for conta in contas_bancarias %}
-                                <option value="{{ conta.pk }}">{{ conta.get_nome_banco_display }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
-                            <i class="fas fa-chevron-down"></i>
+                    <!-- Coluna 2 -->
+                    <div class="space-y-6">
+                        <!-- Forma de Recebimento -->
+                        <div class="input-group">
+                            <label for="id_forma_recebimento" class="form-label flex items-center">
+                                <i class="fas fa-credit-card mr-2 text-yellow-500"></i>
+                                Forma de Recebimento
+                            </label>
+                            <div class="relative">
+                                <select id="id_forma_recebimento" name="forma_recebimento" class="form-input" required>
+                                    <option value="">Selecione a forma de recebimento</option>
+                                    {% for code, name in FORMA_RECEBIMENTO_CHOICES %}
+                                        <option value="{{ code }}">{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <p class="form-error" id="forma_recebimento_error"></p>
+                        </div>
+
+                        <!-- Conta Bancária -->
+                        <div class="input-group">
+                            <label for="id_conta_bancaria" class="form-label flex items-center">
+                                <i class="fas fa-landmark mr-2 text-indigo-500"></i>
+                                Conta Bancária
+                            </label>
+                            <div class="relative">
+                                <select id="id_conta_bancaria" name="conta_bancaria" class="form-input" required>
+                                    <option value="">Selecione a conta bancária</option>
+                                    {% for conta in contas_bancarias %}
+                                        <option value="{{ conta.pk }}">{{ conta.get_nome_banco_display }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <p class="form-error" id="conta_bancaria_error"></p>
+                        </div>
+
+                        <!-- Observações -->
+                        <div class="input-group">
+                            <label for="id_observacao" class="form-label flex items-center">
+                                <i class="fas fa-sticky-note mr-2 text-gray-500"></i>
+                                Observações
+                            </label>
+                            <textarea id="id_observacao" name="observacao" class="form-input" rows="5" placeholder="Observações adicionais"></textarea>
+                            <p class="form-error" id="observacao_error"></p>
                         </div>
                     </div>
-                    <p class="form-error" id="conta_bancaria_error"></p>
                 </div>
 
-                <!-- Observações -->
-                <div class="input-group">
-                    <label for="id_observacao" class="form-label flex items-center">
-                        <i class="fas fa-sticky-note mr-2 text-gray-500"></i>
-                        Observações
-                    </label>
-                    <textarea id="id_observacao" name="observacao" class="form-input" rows="3" placeholder="Observações adicionais"></textarea>
-                    <p class="form-error" id="observacao_error"></p>
-                </div>
-
-                <div class="flex justify-end space-x-4">
+                <div class="flex justify-end space-x-4 mt-8">
                     <button type="button" id="cancelEntradaBtn" class="cancel-btn px-6 py-3 border border-gray-300 rounded-xl text-gray-700 flex items-center transition-all hover:shadow-md">
                         <i class="fas fa-times mr-2"></i>
                         Cancelar
@@ -566,7 +575,7 @@
 <!-- Modal para Editar Entrada -->
 <div id="editEntradaModal" class="modal-overlay hidden">
     <div class="modal-content">
-        <div class="form-container w-full max-w-lg p-8">
+        <div class="form-container w-full max-w-4xl p-8">
             <div class="flex justify-between items-center mb-8">
                 <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Editar Entrada</h2>
                 <button type="button" id="closeEditEntradaModalBtn" class="text-gray-500 hover:text-gray-700">
@@ -576,106 +585,114 @@
                 </button>
             </div>
             
-            <form method="post" id="editEntradaFormModal" class="space-y-6" action="">
+            <form method="post" id="editEntradaFormModal" action="">
                 {% csrf_token %}
                 <input type="hidden" id="edit_entrada_id" name="entrada_id">
                 
-                <!-- Descrição -->
-                <div class="input-group">
-                    <label for="edit_nome" class="form-label flex items-center">
-                        <i class="fas fa-file-alt mr-2 text-blue-500"></i>
-                        Descrição
-                    </label>
-                    <input type="text" id="edit_nome" name="nome" class="form-input" placeholder="Descrição da entrada" required>
-                    <p class="form-error" id="edit_nome_error"></p>
-                </div>
-
-                <!-- Valor -->
-                <div class="input-group">
-                    <label for="edit_valor" class="form-label flex items-center">
-                        <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
-                        Valor
-                    </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span class="text-gray-500 sm:text-sm">R$</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Coluna 1 -->
+                    <div class="space-y-6">
+                        <!-- Descrição -->
+                        <div class="input-group">
+                            <label for="edit_nome" class="form-label flex items-center">
+                                <i class="fas fa-file-alt mr-2 text-blue-500"></i>
+                                Descrição
+                            </label>
+                            <input type="text" id="edit_nome" name="nome" class="form-input" placeholder="Descrição da entrada" required>
+                            <p class="form-error" id="edit_nome_error"></p>
                         </div>
-                        <input type="text" id="edit_valor" name="valor" class="form-input pl-10" placeholder="0,00" required>
-                    </div>
-                    <p class="form-error" id="edit_valor_error"></p>
-                </div>
 
-                <!-- Data -->
-                <div class="input-group">
-                    <label for="edit_data" class="form-label flex items-center">
-                        <i class="fas fa-calendar-alt mr-2 text-purple-500"></i>
-                        Data
-                    </label>
-                    <input type="date" id="edit_data" name="data" class="form-input" required>
-                    <p class="form-error" id="edit_data_error"></p>
-                </div>
+                        <!-- Valor -->
+                        <div class="input-group">
+                            <label for="edit_valor" class="form-label flex items-center">
+                                <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+                                Valor
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">R$</span>
+                                </div>
+                                <input type="text" id="edit_valor" name="valor" class="form-input pl-10" placeholder="0,00" required>
+                            </div>
+                            <p class="form-error" id="edit_valor_error"></p>
+                        </div>
 
-                <!-- Origem -->
-                <div class="input-group">
-                    <label for="edit_local" class="form-label flex items-center">
-                        <i class="fas fa-map-marker-alt mr-2 text-red-500"></i>
-                        Origem
-                    </label>
-                    <input type="text" id="edit_local" name="local" class="form-input" placeholder="Origem do recebimento" required>
-                    <p class="form-error" id="edit_local_error"></p>
-                </div>
+                        <!-- Data -->
+                        <div class="input-group">
+                            <label for="edit_data" class="form-label flex items-center">
+                                <i class="fas fa-calendar-alt mr-2 text-purple-500"></i>
+                                Data
+                            </label>
+                            <input type="date" id="edit_data" name="data" class="form-input" required>
+                            <p class="form-error" id="edit_data_error"></p>
+                        </div>
 
-                <!-- Forma de Recebimento -->
-                <div class="input-group">
-                    <label for="edit_forma_recebimento" class="form-label flex items-center">
-                        <i class="fas fa-credit-card mr-2 text-yellow-500"></i>
-                        Forma de Recebimento
-                    </label>
-                    <div class="relative">
-                        <select id="edit_forma_recebimento" name="forma_recebimento" class="form-input" required>
-                            <option value="">Selecione a forma de recebimento</option>
-                            {% for code, name in FORMA_RECEBIMENTO_CHOICES %}
-                                <option value="{{ code }}">{{ name }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
-                            <i class="fas fa-chevron-down"></i>
+                        <!-- Origem -->
+                        <div class="input-group">
+                            <label for="edit_local" class="form-label flex items-center">
+                                <i class="fas fa-map-marker-alt mr-2 text-red-500"></i>
+                                Origem
+                            </label>
+                            <input type="text" id="edit_local" name="local" class="form-input" placeholder="Origem do recebimento" required>
+                            <p class="form-error" id="edit_local_error"></p>
                         </div>
                     </div>
-                    <p class="form-error" id="edit_forma_recebimento_error"></p>
-                </div>
 
-                <!-- Conta Bancária -->
-                <div class="input-group">
-                    <label for="edit_conta_bancaria" class="form-label flex items-center">
-                        <i class="fas fa-landmark mr-2 text-indigo-500"></i>
-                        Conta Bancária
-                    </label>
-                    <div class="relative">
-                        <select id="edit_conta_bancaria" name="conta_bancaria" class="form-input" required>
-                            <option value="">Selecione a conta bancária</option>
-                            {% for conta in contas_bancarias %}
-                                <option value="{{ conta.pk }}">{{ conta.get_nome_banco_display }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
-                            <i class="fas fa-chevron-down"></i>
+                    <!-- Coluna 2 -->
+                    <div class="space-y-6">
+                        <!-- Forma de Recebimento -->
+                        <div class="input-group">
+                            <label for="edit_forma_recebimento" class="form-label flex items-center">
+                                <i class="fas fa-credit-card mr-2 text-yellow-500"></i>
+                                Forma de Recebimento
+                            </label>
+                            <div class="relative">
+                                <select id="edit_forma_recebimento" name="forma_recebimento" class="form-input" required>
+                                    <option value="">Selecione a forma de recebimento</option>
+                                    {% for code, name in FORMA_RECEBIMENTO_CHOICES %}
+                                        <option value="{{ code }}">{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <p class="form-error" id="edit_forma_recebimento_error"></p>
+                        </div>
+
+                        <!-- Conta Bancária -->
+                        <div class="input-group">
+                            <label for="edit_conta_bancaria" class="form-label flex items-center">
+                                <i class="fas fa-landmark mr-2 text-indigo-500"></i>
+                                Conta Bancária
+                            </label>
+                            <div class="relative">
+                                <select id="edit_conta_bancaria" name="conta_bancaria" class="form-input" required>
+                                    <option value="">Selecione a conta bancária</option>
+                                    {% for conta in contas_bancarias %}
+                                        <option value="{{ conta.pk }}">{{ conta.get_nome_banco_display }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <p class="form-error" id="edit_conta_bancaria_error"></p>
+                        </div>
+
+                        <!-- Observações -->
+                        <div class="input-group">
+                            <label for="edit_observacao" class="form-label flex items-center">
+                                <i class="fas fa-sticky-note mr-2 text-gray-500"></i>
+                                Observações
+                            </label>
+                            <textarea id="edit_observacao" name="observacao" class="form-input" rows="5" placeholder="Observações adicionais"></textarea>
+                            <p class="form-error" id="edit_observacao_error"></p>
                         </div>
                     </div>
-                    <p class="form-error" id="edit_conta_bancaria_error"></p>
                 </div>
 
-                <!-- Observações -->
-                <div class="input-group">
-                    <label for="edit_observacao" class="form-label flex items-center">
-                        <i class="fas fa-sticky-note mr-2 text-gray-500"></i>
-                        Observações
-                    </label>
-                    <textarea id="edit_observacao" name="observacao" class="form-input" rows="3" placeholder="Observações adicionais"></textarea>
-                    <p class="form-error" id="edit_observacao_error"></p>
-                </div>
-
-                <div class="flex justify-end space-x-4">
+                <div class="flex justify-end space-x-4 mt-8">
                     <button type="button" id="cancelEditEntradaBtn" class="cancel-btn px-6 py-3 border border-gray-300 rounded-xl text-gray-700 flex items-center transition-all hover:shadow-md">
                         <i class="fas fa-times mr-2"></i>
                         Cancelar

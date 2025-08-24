@@ -1,7 +1,8 @@
 {% extends 'core/base.html' %}
+{% load currency_filters %}
+
 
 {% block title %}Minhas Despesas - {{ mes_atual_nome }} {{ ano_atual }}{% endblock %}
-
 
 {% block extra_head %}
     <!-- Tailwind CSS CDN (se não estiver já no base.html) -->
@@ -30,7 +31,7 @@
                 background-color: rgba(255, 255, 255, 0.9);
             }
         }
-        
+
         .chart-container {
             height: 300px; /* Altura fixa para todos os containers de gráficos */
             min-height: 300px;
@@ -38,7 +39,7 @@
             justify-content: center;
             align-items: center;
         }
-        
+
         /* Ajustando as cores para o padrão do extrato_completo.html */
         .valor-positivo {
             background-color: #f0fdf4;
@@ -47,10 +48,10 @@
             border-radius: 0.25rem;
             font-weight: 500;
         }
-        
+
         .valor-negativo {
             background-color: #fef2f2;
-            color: #b91c1c; /* Cor original do extrato. Ajustado de #991b1b */
+            color: #b91c1c; /* Cor original do extrato. Ajustado de #991b1c */
             padding: 0.25rem 0.5rem;
             border-radius: 0.25rem;
             font-weight: 500;
@@ -61,7 +62,7 @@
             background-color: #052e16;
             color: #bbf7d0;
         }
-        
+
         .dark .valor-negativo {
             background-color: #450a0a;
             color: #fca5a5;
@@ -71,98 +72,349 @@
         .table-striped tbody tr:nth-child(odd) {
             background-color: rgba(255, 255, 255, 0.1);
         }
-            /* Estilos para modais */
-    .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(0, 0, 0, 0.7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.3s ease;
-    }
-    
-    .modal-overlay.show {
-        opacity: 1;
-        visibility: visible;
-    }
-    
-    .modal-content {
-        background: white;
-        border-radius: 12px;
-        max-width: 90%;
-        max-height: 90%;
-        overflow-y: auto;
-        transform: scale(0.9);
-        transition: transform 0.3s ease;
-    }
-    
-    .modal-overlay.show .modal-content {
-        transform: scale(1);
-    }
-    
-    .form-container {
-        background: white;
-        padding: 2rem;
-    }
-    
-    .form-label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-        color: #374151;
-    }
-    
-    .form-input {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        transition: border-color 0.2s;
-    }
-    
-    .form-input:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-    
-    .form-error {
-        color: #dc2626;
-        font-size: 0.875rem;
-        margin-top: 0.25rem;
-        display: none;
-    }
-    
-    .submit-btn {
-        background: #2563eb;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.5rem;
-        transition: background 0.2s;
-    }
-    
-    .submit-btn:hover {
-        background: #1d4ed8;
-    }
-    
-    .cancel-btn {
-        background: #f3f4f6;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.5rem;
-        transition: background 0.2s;
-    }
-    
-    .cancel-btn:hover {
-        background: #e5e7eb;
-    }
+        /* Estilos para modais */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: scale(1);
+        }
+
+        /* Estilos copiados do saida_form.html para o modal */
+        .form-container-modal { /* Renomeado para não conflitar com .form-container existente */
+            max-width: 900px; /* Mantido em 900px para o formulário de saída ser mais largo */
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .dark .form-container-modal {
+            background: #1e293b;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .form-title-modal { /* Renomeado */
+            font-size: 1.75rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1.75rem;
+            color: #1f2937;
+            letter-spacing: -0.025em;
+        }
+        
+        .dark .form-title-modal {
+            color: #f9fafb;
+        }
+        
+        .form-label-modal { /* Renomeado */
+            font-size: 0.9375rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .dark .form-label-modal {
+            color: #e5e7eb;
+        }
+        
+        .form-input-modal { /* Renomeado */
+            width: 100%;
+            background: #f9fafb;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            font-size: 0.9375rem;
+            color: #1f2937;
+            transition: all 0.2s ease;
+        }
+        
+        .dark .form-input-modal {
+            background: #334155;
+            border-color: #475569;
+            color: #f9fafb;
+        }
+        
+        .form-input-modal:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            outline: none;
+        }
+        
+        .form-input-modal.invalid {
+            border-color: #ef4444;
+        }
+        
+        .form-input-modal.valid {
+            border-color: #10b981;
+        }
+        
+        .form-error-modal { /* Renomeado */
+            color: #ef4444;
+            font-size: 0.8125rem;
+            margin-top: 0.25rem;
+            display: none; /* Adicionado para controlar visibilidade via JS */
+        }
+        
+        .dark .form-error-modal {
+            color: #fca5a5;
+        }
+        
+        .form-group-modal { /* Renomeado */
+            margin-bottom: 1.25rem;
+        }
+        
+        .form-row-modal { /* Renomeado */
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .form-col-modal { /* Renomeado */
+            flex: 1;
+        }
+        
+        .form-actions-modal { /* Renomeado */
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.75rem;
+        }
+        
+        .form-button-modal { /* Renomeado */
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 1.75rem;
+            font-weight: 500;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .form-button-modal:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        
+        .cancel-button-modal { /* Renomeado */
+            background: white;
+            color: #374151;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0.75rem 1.75rem;
+            font-weight: 500;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+        
+        .dark .cancel-button-modal {
+            background: #1e293b;
+            color: #e5e7eb;
+            border-color: #475569;
+        }
+        
+        .cancel-button-modal:hover {
+            background: #f3f4f6;
+            transform: translateY(-1px);
+        }
+        
+        .dark .cancel-button-modal:hover {
+            background: #334155;
+        }
+        
+        /* Checkbox styles */
+        .checkbox-container-modal { /* Renomeado */
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            background: #f9fafb;
+            border: 1.5px solid #e5e7eb;
+            transition: all 0.2s ease;
+            height: 100%; /* Garante que ocupe a altura do form-group */
+        }
+        
+        .dark .checkbox-container-modal {
+            background: #334155;
+            border-color: #475569;
+        }
+        
+        .checkbox-container-modal.checked {
+            background: #ecfdf5;
+            border-color: #10b981;
+        }
+        
+        .dark .checkbox-container-modal.checked {
+            background: #064e3b;
+            border-color: #059669;
+        }
+        
+        .checkbox-container-modal input[type="checkbox"] {
+            width: auto;
+            margin-right: 0.5rem;
+            accent-color: #10b981;
+        }
+        
+        /* Ajustes para os inputs form-input-modal com ícones */
+        .input-group-modal .relative .form-input-modal { /* Alterado para input-group-modal */
+            padding-left: 2.5rem; /* Espaço para o ícone */
+        }
+        .input-group-modal .relative .absolute { /* Alterado para input-group-modal */
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding-left: 0.75rem;
+            color: #6b7280;
+        }
+        .input-group-modal .relative .absolute.right-0 { /* Alterado para input-group-modal */
+            padding-left: 0;
+            padding-right: 0.75rem;
+        }
+        .input-group-modal .form-label-modal i { /* Alterado para input-group-modal */
+            width: 1rem; /* Consistência no tamanho do ícone */
+        }
+
+
+                
+        /* Estilos para os campos de parcelamento */
+        .parcelamento-section {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .dark .parcelamento-section {
+            background: #2d3748;
+            border-color: #4a5568;
+        }
+
+        .parcelamento-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .dark .parcelamento-header {
+            color: #e5e7eb;
+        }
+
+        .parcelamento-header i {
+            margin-right: 0.5rem;
+            color: #3b82f6;
+        }
+
+        .metodo-radio-group {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metodo-radio-label {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            background: #f1f5f9;
+            border: 2px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dark .metodo-radio-label {
+            background: #374151;
+            border-color: #4a5568;
+        }
+
+        .metodo-radio-label input[type="radio"] {
+            margin-right: 0.5rem;
+        }
+
+        .metodo-radio-label:hover {
+            border-color: #3b82f6;
+        }
+
+        .metodo-radio-label.selected {
+            background: #dbeafe;
+            border-color: #3b82f6;
+        }
+
+        .dark .metodo-radio-label.selected {
+            background: #1e40af;
+            border-color: #3b82f6;
+        }
+
+        .parcelamento-campos {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .valor-total-calc {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem;
+            font-weight: 600;
+            color: #166534;
+        }
+
+        .dark .valor-total-calc {
+            background: #052e16;
+            border-color: #059669;
+            color: #bbf7d0;
+        }
+
+        /* Ajuste para os campos dentro do parcelamento */
+        .parcelamento-section .form-group-modal {
+            margin-bottom: 1rem;
+        }
+
+        .parcelamento-section .form-label-modal {
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
     </style>
 {% endblock %}
+
 
 {% block content %}
 <div class="glass-panel min-h-screen p-8 flex flex-col space-y-6">
@@ -180,9 +432,8 @@
         </button>
     </div>
 
-    <!-- Mensagem de sucesso -->
-    <div id="successMessage" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert"></div>
-
+    <!-- Mensagem de sucesso/erro -->
+    <div id="messageContainer" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert"></div>
 
     <!-- Cards de Resumo -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -191,11 +442,11 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Total Despesas</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ total_despesas|floatformat:2 }}</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white"> {{ total_despesas|br_currency }}</p>
                 </div>
                 <div class="bg-blue-100 p-2 rounded-lg text-blue-600 dark:bg-blue-900 dark:text-blue-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0-2.08-.402-2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
             </div>
@@ -211,7 +462,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Despesas Pagas</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ despesas_pagas|floatformat:2 }}</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white"> {{ despesas_pagas|br_currency }}</p>
                 </div>
                 <div class="bg-green-100 p-2 rounded-lg text-green-600 dark:bg-green-900 dark:text-green-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -231,7 +482,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Despesas Pendentes</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ despesas_pendentes|floatformat:2 }}</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white"> {{ despesas_pendentes|br_currency}}</p>
                 </div>
                 <div class="bg-orange-100 p-2 rounded-lg text-orange-600 dark:bg-orange-900 dark:text-orange-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -247,59 +498,45 @@
         </div>
     </div>
 
-    <!-- Painel de Filtros -->
+<!-- Painel de Filtros -->
     <div class="bg-gray-100 rounded-xl shadow-lg p-6 my-8 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
         <h2 class="text-lg font-semibold text-gray-700 mb-4 dark:text-white">Filtrar Despesas</h2>
         
         <!-- Linha 1: Ano e Status -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <!-- Filtro Ano -->
-            <div>
+            <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
                 <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Ano</label>
                 <div class="flex flex-wrap gap-2">
-                    {% for ano in anos_disponiveis %}
-                    <a href="?ano={{ ano }}&mes={{ mes_selecionado }}{% if status_filtro %}&status={{ status_filtro }}{% endif %}"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if ano == ano_selecionado %}
-                                  bg-blue-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
-                        {{ ano }}
+                    <a href="?ano=2023&mes=06&status=pendente"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-blue-600 text-white shadow">
+                        2023
                     </a>
-                    {% endfor %}
+                    <a href="?ano=2024&mes=06&status=pendente"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                        2024
+                    </a>
+                    <a href="?ano=2025&mes=06&status=pendente"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                        2025
+                    </a>
                 </div>
             </div>
-            
+
             <!-- Filtro Status -->
-            <div>
+            <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
                 <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Status</label>
                 <div class="flex flex-wrap gap-2">
-                    <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if not status_filtro %}
-                                  bg-blue-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
+                    <a href="?ano=2023&mes=06"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
                         Todos
                     </a>
-                    <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}&status=pago"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if status_filtro == 'pago' %}
-                                  bg-green-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
+                    <a href="?ano=2023&mes=06&status=pago"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
                         Pago
                     </a>
-                    <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}&status=pendente"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if status_filtro == 'pendente' %}
-                                  bg-orange-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
+                    <a href="?ano=2023&mes=06&status=pendente"
+                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-orange-600 text-white shadow">
                         Pendente
                     </a>
                 </div>
@@ -307,35 +544,67 @@
         </div>
         
         <!-- Linha 2: Mês -->
-        <div>
+        <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
             <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Mês</label>
             <div class="flex flex-wrap gap-2">
-                <a href="?ano={{ ano_selecionado }}&mes=todos{% if status_filtro %}&status={{ status_filtro }}{% endif %}"
-                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                          {% if mes_selecionado == 'todos' %}
-                              bg-blue-600 text-white shadow
-                          {% else %}
-                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                          {% endif %}">
+                <a href="?ano=2023&mes=todos&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
                     Todos
                 </a>
-                {% for mes_num, mes_nome in meses %}
-                <a href="?ano={{ ano_selecionado }}&mes={{ mes_num }}{% if status_filtro %}&status={{ status_filtro }}{% endif %}"
-                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                          {% if mes_selecionado == mes_num|stringformat:'02d' %}
-                              bg-blue-600 text-white shadow
-                          {% else %}
-                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                          {% endif %}">
-                    {{ mes_nome|slice:":3" }}
+                <a href="?ano=2023&mes=01&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Jan
                 </a>
-                {% endfor %}
+                <a href="?ano=2023&mes=02&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Fev
+                </a>
+                <a href="?ano=2023&mes=03&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Mar
+                </a>
+                <a href="?ano=2023&mes=04&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Abr
+                </a>
+                <a href="?ano=2023&mes=05&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Mai
+                </a>
+                <a href="?ano=2023&mes=06&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-blue-600 text-white shadow">
+                    Jun
+                </a>
+                <a href="?ano=2023&mes=07&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Jul
+                </a>
+                <a href="?ano=2023&mes=08&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Ago
+                </a>
+                <a href="?ano=2023&mes=09&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Set
+                </a>
+                <a href="?ano=2023&mes=10&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Out
+                </a>
+                <a href="?ano=2023&mes=11&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Nov
+                </a>
+                <a href="?ano=2023&mes=12&status=pendente"
+                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Dez
+                </a>
             </div>
         </div>
     </div>
 
 
-   <!-- Tabela de Saídas -->
+    <!-- Tabela de Saídas -->
     <div class="bg-white rounded-xl shadow-lg overflow-hidden mt-8">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -361,7 +630,7 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ saida.data_vencimento|date:"d/m/Y" }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             {% if saida.quantidade_parcelas > 1 %}
-                                {{ saida.quantidade_parcelas }}x de R$ {{ saida.valor_parcela|floatformat:2 }}
+                                {{ saida.quantidade_parcelas }}x de R$ {{ saida.valor_parcela|br_currency }}
                             {% else %}
                                 Única
                             {% endif %}
@@ -378,7 +647,7 @@
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                            R$ {{ saida.valor|floatformat:2 }}
+                             {{ saida.valor|br_currency }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-y-2">
                             <button class="edit-saida-btn text-blue-600 hover:text-blue-800 transition-colors flex items-center justify-end"
@@ -414,172 +683,368 @@
 <!-- Modal para Adicionar/Editar Saída -->
 <div id="saidaModal" class="modal-overlay hidden">
     <div class="modal-content">
-        <div class="form-container w-full max-w-4xl p-8">
+        <div id="saidaModalContent" class="form-container-modal w-full p-8">
             <div class="flex justify-between items-center mb-8">
-                <h2 class="text-3xl font-bold text-gray-800" id="modalTitle">Nova Despesa</h2>
+                <h2 class="form-title-modal" id="modalTitle">Nova Despesa</h2>
                 <button type="button" id="closeSaidaModalBtn" class="text-gray-500 hover:text-gray-700">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
-            
+
             <form method="post" id="saidaFormModal" class="space-y-6">
                 {% csrf_token %}
                 <input type="hidden" id="saida_id" name="saida_id">
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Coluna 1 -->
-                    <div class="space-y-6">
-                        <!-- Descrição -->
-                        <div class="input-group">
-                            <label for="nome" class="form-label">Descrição</label>
-                            <input type="text" id="nome" name="nome" class="form-input" placeholder="Nome da despesa" required>
-                            <p class="form-error" id="nome_error"></p>
-                        </div>
 
-                        <!-- Valor -->
-                        <div class="input-group">
-                            <label for="valor" class="form-label">Valor</label>
-                            <input type="text" id="valor" name="valor" class="form-input" placeholder="0,00" required>
-                            <p class="form-error" id="valor_error"></p>
-                        </div>
+                <div class="form-group-modal">
+                    <label for="id_nome" class="form-label-modal flex items-center">
+                        <i class="fas fa-file-alt mr-2 text-blue-500"></i>
+                        Descrição <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="id_nome" name="nome" class="form-input-modal" placeholder="Nome da despesa" required>
+                    <p class="form-error-modal" id="nome_error"></p>
+                </div>
 
-                        <!-- Data de Lançamento -->
-                        <div class="input-group">
-                            <label for="data_lancamento" class="form-label">Data de Lançamento</label>
-                            <input type="date" id="data_lancamento" name="data_lancamento" class="form-input" required>
-                            <p class="form-error" id="data_lancamento_error"></p>
-                        </div>
+   <div class="form-row-modal">
+    <div class="form-col-modal">
+        <div class="form-group-modal">
+            <label for="id_tipo_pagamento_detalhe" class="form-label-modal flex items-center">
+                <i class="fas fa-wallet mr-2 text-gray-500"></i>
+                Tipo de Pagamento <span class="text-red-500">*</span>
+            </label>
+            <select id="id_tipo_pagamento_detalhe" name="tipo_pagamento_detalhe" class="form-input-modal" required>
+                <option value="">Selecione o tipo</option>
+                {% for code, name in TIPO_PAGAMENTO_DETALHE_CHOICES %}
+                    <option value="{{ code }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+            <p class="form-error-modal" id="tipo_pagamento_detalhe_error"></p>
+        </div>
+    </div>
+    <div class="form-col-modal">
+        <div class="form-group-modal" id="avista_fields">
+            <label for="id_valor" class="form-label-modal flex items-center">
+                <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+                Valor (R$) <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 sm:text-sm">R$</span>
+                </div>
+                <input type="text" id="id_valor" name="valor" class="form-input-modal pl-10" placeholder="0,00" required>
+            </div>
+            <p class="form-error-modal" id="valor_error"></p>
+        </div>
+    </div>
+</div>
+<!-- C<!-- Campos de Parcelamento (inicialmente ocultos) -->
+<div id="parcelamento_fields" class="parcelamento-section" style="display: none;">
+    <div class="parcelamento-header">
+        <i class="fas fa-calculator"></i>
+        Configuração do Parcelamento
+    </div>
 
-                        <!-- Data de Vencimento -->
-                        <div class="input-group">
-                            <label for="data_vencimento" class="form-label">Data de Vencimento</label>
-                            <input type="date" id="data_vencimento" name="data_vencimento" class="form-input" required>
-                            <p class="form-error" id="data_vencimento_error"></p>
-                        </div>
+    <div class="metodo-radio-group">
+        <label class="metodo-radio-label selected" id="label_total">
+            <input type="radio" name="metodo_parcelamento" value="total" checked onclick="chooseMetodoParcelado('total')" />
+            Valor total
+        </label>
+        <label class="metodo-radio-label" id="label_parcela">
+            <input type="radio" name="metodo_parcelamento" value="parcela" onclick="chooseMetodoParcelado('parcela')" />
+            Valor da parcela
+        </label>
+    </div>
 
-                        <!-- Local -->
-                        <div class="input-group">
-                            <label for="local" class="form-label">Local</label>
-                            <input type="text" id="local" name="local" class="form-input" placeholder="Local da despesa">
-                            <p class="form-error" id="local_error"></p>
+    <div class="parcelamento-campos">
+        <div id="parcelamento_por_total">
+            <div class="form-row-modal">
+                <div class="form-col-modal">
+                    <div class="form-group-modal">
+                        <label for="parcelado_valor_total" class="form-label-modal">
+                            Valor total (R$)
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">R$</span>
+                            </div>
+                            <input type="text" id="parcelado_valor_total" class="form-input-modal pl-10" placeholder="0,00" 
+                                   oninput="handleCurrencyInput(event); calcularParcelamento();" />
                         </div>
                     </div>
+                </div>
+                <div class="form-col-modal">
+                    <div class="form-group-modal">
+                        <label for="id_quantidade_parcelas" class="form-label-modal">
+                            Quantidade de Parcelas
+                        </label>
+                        <input type="number" id="id_quantidade_parcelas" name="quantidade_parcelas" 
+                               class="form-input-modal" min="1" value="1" 
+                               oninput="calcularParcelamento();" onchange="calcularParcelamento();" />
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                    <!-- Coluna 2 -->
-                    <div class="space-y-6">
-                        <!-- Categoria -->
-                        <div class="input-group">
-                            <label for="categoria" class="form-label">Categoria</label>
-                            <select id="categoria" name="categoria" class="form-input" required>
+        <div id="parcelamento_por_parcela" style="display:none;">
+            <div class="form-row-modal">
+                <div class="form-col-modal">
+                    <div class="form-group-modal">
+                        <label for="parcelado_valor_parcela_input" class="form-label-modal">
+                            Valor da parcela (R$)
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">R$</span>
+                            </div>
+                            <input type="text" id="parcelado_valor_parcela_input" class="form-input-modal pl-10" 
+                                   placeholder="0,00" oninput="handleCurrencyInput(event); calcularParcelamento();" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-col-modal">
+                    <div class="form-group-modal">
+                        <label for="parcelado_num_parcelas" class="form-label-modal">
+                            Quantidade de Parcelas
+                        </label>
+                        <input type="number" id="parcelado_num_parcelas" class="form-input-modal" 
+                               min="1" value="1" oninput="calcularParcelamento();" onchange="calcularParcelamento();" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-row-modal">
+                <div class="form-col-modal">
+                    <div class="form-group-modal">
+                        <label class="form-label-modal">
+                            Valor total calculado (R$)
+                        </label>
+                        <div class="valor-total-calc">
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">R$</span>
+                                </div>
+                                <input type="text" id="parcelado_total_calc" class="form-input-modal pl-10 bg-transparent border-none" readonly />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-row-modal">
+        <div class="form-col-modal">
+            <div class="form-group-modal">
+                <label for="id_valor_parcela" class="form-label-modal flex items-center">
+                    <i class="fas fa-hand-holding-usd mr-2 text-green-500"></i>
+                    Valor Final da Parcela (R$)
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 sm:text-sm">R$</span>
+                    </div>
+                    <input type="text" id="id_valor_parcela" name="valor_parcela" class="form-input-modal pl-10" readonly>
+                </div>
+                <p class="form-error-modal" id="valor_parcela_error"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="form-row-modal">
+        <div class="form-col-modal">
+            <div class="form-group-modal">
+                <label for="id_valor_parcela" class="form-label-modal flex items-center">
+      
+                </div>
+
+                <div class="form-row-modal">
+                    <div class="form-col-modal">
+                        <div class="form-group-modal">
+                            <label for="id_data_lancamento" class="form-label-modal flex items-center">
+                                <i class="fas fa-calendar-alt mr-2 text-purple-500"></i>
+                                Data de Lançamento <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" id="id_data_lancamento" name="data_lancamento" class="form-input-modal" required max="{{ today|date:'Y-m-d' }}">
+                            <p class="form-error-modal" id="data_lancamento_error"></p>
+                        </div>
+                    </div>
+                    <div class="form-col-modal">
+                        <div class="form-group-modal">
+                            <label for="id_data_vencimento" class="form-label-modal flex items-center">
+                                <i class="fas fa-calendar-check mr-2 text-teal-500"></i>
+                                Data de Vencimento <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" id="id_data_vencimento" name="data_vencimento" class="form-input-modal" required>
+                            <p class="form-error-modal" id="data_vencimento_error"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row-modal">
+                    <div class="form-col-modal">
+                        <div class="input-group-modal" id="quantidade_parcelas_group">
+                            <label for="id_quantidade_parcelas" class="form-label-modal flex items-center">
+                                <i class="fas fa-hashtag mr-2 text-blue-500"></i>
+                                Quantidade de Parcelas
+                            </label>
+                            <input type="number" id="id_quantidade_parcelas" name="quantidade_parcelas" class="form-input-modal" min="1" value="1">
+                            <p class="form-error-modal" id="quantidade_parcelas_error"></p>
+                        </div>
+                    </div>
+                    <div class="form-col-modal">
+                        <div class="input-group-modal hidden" id="valor_parcela_group">
+                            <label for="id_valor_parcela" class="form-label-modal flex items-center">
+                                <i class="fas fa-hand-holding-usd mr-2 text-green-500"></i>
+                                Valor da Parcela
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">R$</span>
+                                </div>
+                                <input type="text" id="id_valor_parcela" name="valor_parcela" class="form-input-modal pl-10" readonly>
+                            </div>
+                            <p class="form-error-modal" id="valor_parcela_error"></p>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="form-row-modal">
+                    <div class="form-col-modal">
+                        <div class="form-group-modal">
+                            <label for="id_local" class="form-label-modal flex items-center">
+                                <i class="fas fa-map-marker-alt mr-2 text-red-500"></i>
+                                Local
+                            </label>
+                            <input type="text" id="id_local" name="local" class="form-input-modal" placeholder="Local da despesa">
+                            <p class="form-error-modal" id="local_error"></p>
+                        </div>
+                    </div>
+                    <div class="form-col-modal">
+                        <div class="form-group-modal">
+                            <label for="id_categoria" class="form-label-modal flex items-center">
+                                <i class="fas fa-tags mr-2 text-orange-500"></i>
+                                Categoria <span class="text-red-500">*</span>
+                            </label>
+                            <select id="id_categoria" name="categoria" class="form-input-modal" required>
                                 <option value="">Selecione a categoria</option>
                                 {% for code, name in CATEGORIA_CHOICES %}
                                     <option value="{{ code }}">{{ name }}</option>
                                 {% endfor %}
                             </select>
-                            <p class="form-error" id="categoria_error"></p>
+                            <p class="form-error-modal" id="categoria_error"></p>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- Subcategoria -->
-                        <div class="input-group">
-                            <label for="subcategoria" class="form-label">Subcategoria</label>
-                            <select id="subcategoria" name="subcategoria" class="form-input">
+                <div class="form-row-modal">
+                    <div class="form-col-modal">
+                        <div class="form-group-modal">
+                            <label for="id_subcategoria" class="form-label-modal flex items-center">
+                                <i class="fas fa-sitemap mr-2 text-gray-500"></i>
+                                Subcategoria
+                            </label>
+                            <select id="id_subcategoria" name="subcategoria" class="form-input-modal">
                                 <option value="">Selecione a subcategoria</option>
                                 {% for code, name, categoria in SUBCATEGORIA_CHOICES %}
                                     <option value="{{ code }}" data-categoria="{{ categoria }}">{{ name }}</option>
                                 {% endfor %}
                             </select>
-                            <p class="form-error" id="subcategoria_error"></p>
+                            <p class="form-error-modal" id="subcategoria_error"></p>
                         </div>
-
-                        <!-- Forma de Pagamento -->
-                        <div class="input-group">
-                            <label for="forma_pagamento" class="form-label">Forma de Pagamento</label>
-                            <select id="forma_pagamento" name="forma_pagamento" class="form-input" required>
+                    </div>
+                    <div class="form-col-modal">
+                        <div class="form-group-modal">
+                            <label for="id_forma_pagamento" class="form-label-modal flex items-center">
+                                <i class="fas fa-credit-card mr-2 text-yellow-500"></i>
+                                Forma de Pagamento <span class="text-red-500">*</span>
+                            </label>
+                            <select id="id_forma_pagamento" name="forma_pagamento" class="form-input-modal" required>
                                 <option value="">Selecione a forma de pagamento</option>
                                 {% for code, name in FORMA_PAGAMENTO_CHOICES %}
                                     <option value="{{ code }}">{{ name }}</option>
                                 {% endfor %}
                             </select>
-                            <p class="form-error" id="forma_pagamento_error"></p>
+                            <p class="form-error-modal" id="forma_pagamento_error"></p>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- Tipo de Pagamento -->
-                        <div class="input-group">
-                            <label for="tipo_pagamento_detalhe" class="form-label">Tipo de Pagamento</label>
-                            <select id="tipo_pagamento_detalhe" name="tipo_pagamento_detalhe" class="form-input" required>
-                                <option value="">Selecione o tipo</option>
-                                {% for code, name in TIPO_PAGAMENTO_DETALHE_CHOICES %}
-                                    <option value="{{ code }}">{{ name }}</option>
-                                {% endfor %}
+                <div class="form-row-modal">
+                    <div class="form-col-modal">
+                        <div class="form-group-modal">
+                            <label for="id_situacao_checkbox" class="form-label-modal flex items-center">
+                                <i class="fas fa-info-circle mr-2 text-blue-400"></i>
+                                Situação
+                            </label>
+                            <div id="situacao-container" class="checkbox-container-modal">
+                                <input type="checkbox" id="id_situacao_checkbox" name="situacao_checkbox" value="pago" />
+                                <label for="id_situacao_checkbox" class="text-sm text-gray-700 dark:text-gray-300 ml-2">Marcar como Pago</label>
+                            </div>
+                            <!-- Hidden select for Django form to correctly receive the value -->
+                            <select id="id_situacao" name="situacao" class="hidden">
+                                <option value="pendente">Pendente</option>
+                                <option value="pago">Pago</option>
                             </select>
-                            <p class="form-error" id="tipo_pagamento_detalhe_error"></p>
+                            <p class="form-error-modal" id="situacao_error"></p>
                         </div>
-
-                        <!-- Situação -->
-                        <div class="input-group">
-                            <label for="situacao" class="form-label">Situação</label>
-                            <select id="situacao" name="situacao" class="form-input">
-                                <option value="">Selecione a situação</option>
-                                {% for code, name in SITUACAO_CHOICES %}
-                                    <option value="{{ code }}">{{ name }}</option>
-                                {% endfor %}
-                            </select>
-                            <p class="form-error" id="situacao_error"></p>
-                        </div>
-
-                        <!-- Conta Bancária -->
-                        <div class="input-group">
-                            <label for="conta_bancaria" class="form-label">Conta Bancária</label>
-                            <select id="conta_bancaria" name="conta_bancaria" class="form-input" required>
+                    </div>
+                    <div class="form-col-modal">
+                        <div class="form-group-modal">
+                            <label for="id_conta_bancaria" class="form-label-modal flex items-center">
+                                <i class="fas fa-university mr-2 text-indigo-500"></i>
+                                Conta Bancária <span class="text-red-500">*</span>
+                            </label>
+                            <select id="id_conta_bancaria" name="conta_bancaria" class="form-input-modal" required>
                                 <option value="">Selecione a conta bancária</option>
                                 {% for conta in contas_bancarias %}
                                     <option value="{{ conta.pk }}">{{ conta.get_nome_banco_display }}</option>
                                 {% endfor %}
                             </select>
-                            <p class="form-error" id="conta_bancaria_error"></p>
+                            <p class="form-error-modal" id="conta_bancaria_error"></p>
                         </div>
                     </div>
                 </div>
-
-                <!-- Campos adicionais -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Quantidade de Parcelas -->
-                    <div class="input-group">
-                        <label for="quantidade_parcelas" class="form-label">Quantidade de Parcelas</label>
-                        <input type="number" id="quantidade_parcelas" name="quantidade_parcelas" class="form-input" min="1" value="1">
-                        <p class="form-error" id="quantidade_parcelas_error"></p>
-                    </div>
-
-                    <!-- Recorrência -->
-                    <div class="input-group">
-                        <label for="recorrente" class="form-label">Recorrência</label>
-                        <select id="recorrente" name="recorrente" class="form-input">
-                            <option value="">Selecione a recorrência</option>
-                            {% for code, name in PERIODICIDADE_CHOICES %}
-                                <option value="{{ code }}">{{ name }}</option>
-                            {% endfor %}
-                        </select>
-                        <p class="form-error" id="recorrente_error"></p>
-                    </div>
+                
+                <!-- Recorrência -->
+                <div class="form-group-modal" id="recorrente_group">
+                    <label for="id_recorrente" class="form-label-modal flex items-center">
+                        <i class="fas fa-redo-alt mr-2 text-gray-500"></i>
+                        Recorrência
+                    </label>
+                    <select id="id_recorrente" name="recorrente" class="form-input-modal">
+                        <option value="">Selecione a recorrência</option>
+                        {% for code, name in PERIODICIDADE_CHOICES %}
+                            <option value="{{ code }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="form-error-modal" id="recorrente_error"></p>
                 </div>
 
                 <!-- Observações -->
-                <div class="input-group">
-                    <label for="observacao" class="form-label">Observações</label>
-                    <textarea id="observacao" name="observacao" class="form-input" rows="3" placeholder="Observações adicionais"></textarea>
-                    <p class="form-error" id="observacao_error"></p>
+                <div class="form-group-modal">
+                    <label for="id_observacao" class="form-label-modal flex items-center">
+                        <i class="fas fa-sticky-note mr-2 text-gray-500"></i>
+                        Observações
+                    </label>
+                    <textarea id="id_observacao" name="observacao" class="form-input-modal" rows="3" placeholder="Observações adicionais"></textarea>
+                    <p class="form-error-modal" id="observacao_error"></p>
                 </div>
 
-                <div class="flex justify-end space-x-4">
-                    <button type="button" id="cancelSaidaBtn" class="cancel-btn">Cancelar</button>
-                    <button type="submit" id="saveSaidaBtn" class="submit-btn text-white">Salvar Despesa</button>
+                <div class="form-actions-modal">
+                    <button type="button" id="cancelSaidaBtn" class="cancel-button-modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="saveSaidaBtn" class="form-button-modal text-white">
+                        Salvar Despesa
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
 
 <!-- Modal para Excluir Saída -->
 <div id="deleteSaidaModal" class="modal-overlay hidden">
@@ -592,7 +1057,7 @@
                 <h3 class="text-lg font-medium text-gray-900 mt-4" id="deleteSaidaModalTitle">Confirmar Exclusão</h3>
                 <p class="text-sm text-gray-500 mt-2" id="deleteSaidaModalMessage">Tem certeza de que deseja excluir esta despesa?</p>
             </div>
-            
+
             <div class="flex justify-center space-x-4">
                 <button type="button" id="cancelDeleteSaidaBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">
                     Cancelar
@@ -607,285 +1072,129 @@
         </div>
     </div>
 </div>
-
-</div>
-
-
-
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Elementos do DOM
-    const openSaidaModalBtn = document.getElementById('openSaidaModalBtn');
+    console.log("DOMContentLoaded fired.");
+
+    // Seletores básicos
     const saidaModal = document.getElementById('saidaModal');
+    const openSaidaModalBtn = document.getElementById('openSaidaModalBtn');
     const closeSaidaModalBtn = document.getElementById('closeSaidaModalBtn');
-    const saidaFormModal = document.getElementById('saidaFormModal');
     const cancelSaidaBtn = document.getElementById('cancelSaidaBtn');
-    const modalTitle = document.getElementById('modalTitle');
-    
-    const deleteSaidaModal = document.getElementById('deleteSaidaModal');
-    const cancelDeleteSaidaBtn = document.getElementById('cancelDeleteSaidaBtn');
-    const deleteSaidaForm = document.getElementById('deleteSaidaForm');
-    const deleteSaidaModalTitle = document.getElementById('deleteSaidaModalTitle');
-    const deleteSaidaModalMessage = document.getElementById('deleteSaidaModalMessage');
-    
-    const successMessage = document.getElementById('successMessage');
+    const saidaFormModal = document.getElementById('saidaFormModal');
+    const tipoPagamentoDetalheSelect = document.getElementById('id_tipo_pagamento_detalhe');
+    const parcelamentoFields = document.getElementById('parcelamento_fields');
+    const avistaFields = document.getElementById('avista_fields');
 
-    // Funções para mostrar/esconder modais
+    // Funções básicas
     function showModal(modal) {
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
     }
-    
+
     function hideModal(modal) {
-        modal.classList.add('hidden');
-        document.body.style.overflow = '';
+        if (modal) {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
+        }
     }
 
-    // Função para mostrar mensagem de sucesso
-    function showSuccessMessage(message) {
-        successMessage.textContent = message;
-        successMessage.classList.remove('hidden');
+    function toggleParcelamentoFields() {
+        if (!tipoPagamentoDetalheSelect || !parcelamentoFields || !avistaFields) return;
         
-        setTimeout(() => {
-            successMessage.classList.add('hidden');
-        }, 3000);
-    }
-
-    // Função para limpar erros do formulário
-    function clearFormErrors() {
-        const errorElements = document.querySelectorAll('.form-error');
-        errorElements.forEach(el => {
-            el.textContent = '';
-            el.style.display = 'none';
-        });
+        const tipoPagamento = tipoPagamentoDetalheSelect.value;
         
-        const inputs = document.querySelectorAll('.form-input');
-        inputs.forEach(input => {
-            input.classList.remove('border-red-500');
+        if (tipoPagamento === 'parcelado') {
+            avistaFields.style.display = 'none';
+            parcelamentoFields.style.display = 'block';
+        } else {
+            avistaFields.style.display = 'block';
+            parcelamentoFields.style.display = 'none';
+        }
+    }
+
+    // Event Listeners
+    if (openSaidaModalBtn) {
+        openSaidaModalBtn.addEventListener('click', function() {
+            if (saidaModal) {
+                // Resetar form
+                if (saidaFormModal) saidaFormModal.reset();
+                document.getElementById('saida_id').value = '';
+                document.getElementById('modalTitle').textContent = 'Nova Despesa';
+                
+                // Resetar parcelamento
+                toggleParcelamentoFields();
+                showModal(saidaModal);
+            }
         });
     }
 
-    // Função para preencher formulário com dados
-    function fillFormWithData(data) {
-        document.getElementById('saida_id').value = data.id || '';
-        document.getElementById('nome').value = data.nome || '';
-        document.getElementById('valor').value = data.valor || '';
-        document.getElementById('data_lancamento').value = data.data_lancamento || '';
-        document.getElementById('data_vencimento').value = data.data_vencimento || '';
-        document.getElementById('local').value = data.local || '';
-        document.getElementById('categoria').value = data.categoria || '';
-        document.getElementById('subcategoria').value = data.subcategoria || '';
-        document.getElementById('forma_pagamento').value = data.forma_pagamento || '';
-        document.getElementById('tipo_pagamento_detalhe').value = data.tipo_pagamento_detalhe || '';
-        document.getElementById('situacao').value = data.situacao || '';
-        document.getElementById('quantidade_parcelas').value = data.quantidade_parcelas || '1';
-        document.getElementById('conta_bancaria').value = data.conta_bancaria || '';
-        document.getElementById('observacao').value = data.observacao || '';
-        document.getElementById('recorrente').value = data.recorrente || '';
+    if (closeSaidaModalBtn) {
+        closeSaidaModalBtn.addEventListener('click', () => hideModal(saidaModal));
     }
 
-    // Event listeners
-    openSaidaModalBtn.addEventListener('click', function() {
-        clearFormErrors();
-        modalTitle.textContent = 'Nova Despesa';
-        saidaFormModal.action = "{% url 'core:saida_create' %}";
-        saidaFormModal.reset();
-        showModal(saidaModal);
-    });
+    if (cancelSaidaBtn) {
+        cancelSaidaBtn.addEventListener('click', () => hideModal(saidaModal));
+    }
 
-    closeSaidaModalBtn.addEventListener('click', () => hideModal(saidaModal));
-    cancelSaidaBtn.addEventListener('click', () => hideModal(saidaModal));
+    if (saidaModal) {
+        saidaModal.addEventListener('click', (e) => {
+            if (e.target === saidaModal) hideModal(saidaModal);
+        });
+    }
 
-    // Fechar modal ao clicar fora
-    saidaModal.addEventListener('click', (e) => {
-        if (e.target === saidaModal) hideModal(saidaModal);
-    });
+    if (tipoPagamentoDetalheSelect) {
+        tipoPagamentoDetalheSelect.addEventListener('change', toggleParcelamentoFields);
+    }
 
     // Botões de edição
     document.querySelectorAll('.edit-saida-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', async function() {
             const saidaId = this.getAttribute('data-saida-id');
-            
-            fetch(`/saidas/${saidaId}/editar/`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
+            try {
+                const response = await fetch(`/saidas/${saidaId}/editar/`);
+                const data = await response.json();
+                
                 if (data.success) {
-                    clearFormErrors();
-                    modalTitle.textContent = 'Editar Despesa';
-                    saidaFormModal.action = `/saidas/${saidaId}/editar/`;
-                    fillFormWithData(data);
+                    // Preencher os campos do formulário
+                    for (const [key, value] of Object.entries(data)) {
+                        const field = document.getElementById(`id_${key}`);
+                        if (field) field.value = value || '';
+                    }
+                    
+                    document.getElementById('saida_id').value = saidaId;
+                    document.getElementById('modalTitle').textContent = 'Editar Despesa';
+                    
+                    // Atualizar campos de parcelamento
+                    toggleParcelamentoFields();
+                    
                     showModal(saidaModal);
                 }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Erro ao carregar dados da despesa');
-            });
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+            }
         });
     });
 
-    // Botões de exclusão
-    document.querySelectorAll('.delete-saida-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const saidaId = this.getAttribute('data-saida-id');
-            const saidaNome = this.getAttribute('data-saida-nome');
-            
-            deleteSaidaModalTitle.textContent = 'Confirmar Exclusão';
-            deleteSaidaModalMessage.textContent = `Tem certeza de que deseja excluir a despesa "${saidaNome}"?`;
-            deleteSaidaForm.action = `/saidas/${saidaId}/excluir/`;
-            
-            showModal(deleteSaidaModal);
-        });
-    });
+    // Inicialização
+    toggleParcelamentoFields();
 
-    cancelDeleteSaidaBtn.addEventListener('click', () => hideModal(deleteSaidaModal));
-
-    // Envio do formulário principal
-    saidaFormModal.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        const submitBtn = this.querySelector('#saveSaidaBtn');
-        const originalText = submitBtn.innerHTML;
-        const url = this.action;
-        
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = 'Salvando...';
-        clearFormErrors();
-        
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                hideModal(saidaModal);
-                showSuccessMessage(data.message);
-                setTimeout(() => window.location.reload(), 1500);
-            } else if (data.errors) {
-                // Mostrar erros de validação
-                for (const [field, errors] of Object.entries(data.errors)) {
-                    const errorElement = document.getElementById(`${field}_error`);
-                    if (errorElement) {
-                        errorElement.textContent = errors[0];
-                        errorElement.style.display = 'block';
-                        
-                        const inputField = document.getElementById(field);
-                        if (inputField) {
-                            inputField.classList.add('border-red-500');
-                        }
-                    }
-                }
-                alert('Por favor, corrija os erros no formulário.');
-            }
-        } catch (error) {
-            console.error('Erro:', error);
-            alert('Erro ao salvar despesa. Tente novamente.');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
-        }
-    });
-
-    // Envio do formulário de exclusão
-    deleteSaidaForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const originalText = submitBtn.textContent;
-        const url = this.action;
-        
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Excluindo...';
-        
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                hideModal(deleteSaidaModal);
-                showSuccessMessage(data.message);
-                setTimeout(() => window.location.reload(), 1500);
-            } else {
-                alert('Erro ao excluir despesa.');
-            }
-        } catch (error) {
-            console.error('Erro:', error);
-            alert('Erro ao excluir despesa. Tente novamente.');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
-        }
-    });
-
-    // Função para obter CSRF token
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-    // Fechar modais com a tecla ESC
+    // Fechar com ESC
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            if (!saidaModal.classList.contains('hidden')) hideModal(saidaModal);
-            if (!deleteSaidaModal.classList.contains('hidden')) hideModal(deleteSaidaModal);
+            if (saidaModal && !saidaModal.classList.contains('hidden')) {
+                hideModal(saidaModal);
+            }
         }
     });
 
-    // Filtrar subcategorias baseado na categoria selecionada
-    const categoriaSelect = document.getElementById('categoria');
-    const subcategoriaSelect = document.getElementById('subcategoria');
-    
-    if (categoriaSelect && subcategoriaSelect) {
-        categoriaSelect.addEventListener('change', function() {
-            const selectedCategoria = this.value;
-            const options = subcategoriaSelect.querySelectorAll('option');
-            
-            options.forEach(option => {
-                if (option.value === '') {
-                    option.style.display = 'block';
-                } else if (option.getAttribute('data-categoria') === selectedCategoria) {
-                    option.style.display = 'block';
-                } else {
-                    option.style.display = 'none';
-                }
-            });
-            
-            // Resetar a seleção
-            subcategoriaSelect.value = '';
-        });
-    }
 });
 </script>
 {% endblock %}

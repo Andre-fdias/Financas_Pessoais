@@ -1,0 +1,284 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ action }} Conta Bancária{% endblock %}
+
+{% block extra_head %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .form-container {
+        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .dark .form-container {
+        background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .form-input {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .dark .form-input {
+        border-color: #334155;
+        background-color: #1e293b;
+    }
+    
+    .form-input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        outline: none;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 6px;
+        display: block;
+    }
+    
+    .dark .form-label {
+        color: #94a3b8;
+    }
+    
+    .form-error {
+        color: #ef4444;
+        font-size: 0.875rem;
+        margin-top: 4px;
+    }
+    
+    .dark .form-error {
+        color: #f87171;
+    }
+    
+    .loading-spinner {
+        border: 3px solid rgba(99, 102, 241, 0.2);
+        border-left-color: #6366f1;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        display: none;
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    
+    .loading-spinner.show {
+        display: block;
+    }
+    
+    @keyframes spin {
+        0% { transform: translateY(-50%) rotate(0deg); }
+        100% { transform: translateY(-50%) rotate(360deg); }
+    }
+    
+    .submit-btn {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3), 0 2px 4px -1px rgba(99, 102, 241, 0.2);
+    }
+    
+    .submit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3), 0 4px 6px -2px rgba(99, 102, 241, 0.2);
+    }
+    
+    .cancel-btn {
+        transition: all 0.3s ease;
+    }
+    
+    .cancel-btn:hover {
+        background-color: #f1f5f9;
+        transform: translateY(-1px);
+    }
+    
+    .dark .cancel-btn:hover {
+        background-color: #1e293b;
+    }
+    
+    .input-group {
+        position: relative;
+    }
+    
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .checkbox-input {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+        appearance: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .dark .checkbox-input {
+        border-color: #334155;
+        background-color: #1e293b;
+    }
+    
+    .checkbox-input:checked {
+        background-color: #6366f1;
+        border-color: #6366f1;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd' /%3E%3C/svg%3E");
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center p-4">
+    <div class="form-container w-full max-w-lg p-8">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-2">{{ action }} Conta Bancária</h2>
+            <p class="text-gray-600 dark:text-gray-300">Preencha os detalhes da conta</p>
+        </div>
+        
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 dark:bg-red-900/20 dark:border-red-700">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-500 dark:text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-red-700 dark:text-red-300">
+                                {{ form.non_field_errors }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+         <!-- Banco -->
+<div class="input-group">
+    <label for="{{ form.nome_banco.id_for_label }}" class="form-label">Banco</label>
+    {{ form.nome_banco }}
+    {% if form.nome_banco.errors %}
+        <p class="form-error">{{ form.nome_banco.errors.as_text }}</p>
+    {% endif %}
+</div>
+
+<!-- Tipo de Conta -->
+<div class="input-group">
+    <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Conta</label>
+    {{ form.tipo }}
+    {% if form.tipo.errors %}
+        <p class="form-error">{{ form.tipo.errors.as_text }}</p>
+    {% endif %}
+</div>
+
+<!-- Agência (condicional) -->
+<div class="input-group agencia-group">
+    <label for="{{ form.agencia.id_for_label }}" class="form-label">Agência</label>
+    {{ form.agencia }}
+    {% if form.agencia.errors %}
+        <p class="form-error">{{ form.agencia.errors.as_text }}</p>
+    {% endif %}
+</div>
+
+<!-- Número da Conta (condicional) -->
+<div class="input-group numero-conta-group">
+    <label for="{{ form.numero_conta.id_for_label }}" class="form-label">Número da Conta</label>
+    {{ form.numero_conta }}
+    {% if form.numero_conta.errors %}
+        <p class="form-error">{{ form.numero_conta.errors.as_text }}</p>
+    {% endif %}
+</div>       
+   <!-- Proprietário -->
+<div class="input-group">
+    <label for="{{ form.proprietario.id_for_label }}" class="form-label">Proprietário</label>
+    {% if form.proprietario.field.queryset.exists %}
+        {{ form.proprietario }}
+    {% else %}
+        <input type="text" class="form-input w-full px-4 py-3" value="{{ request.user.username }}" disabled>
+        <input type="hidden" name="proprietario" value="{{ request.user.id }}">
+    {% endif %}
+    {% if form.proprietario.errors %}
+        <p class="form-error">{{ form.proprietario.errors.as_text }}</p>
+    {% endif %}
+</div>
+            
+            <!-- Conta Ativa -->
+            <div class="input-group">
+                <div class="checkbox-container">
+                    {{ form.ativa }}
+                    <label for="{{ form.ativa.id_for_label }}" class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                        Conta Ativa
+                    </label>
+                </div>
+                {% if form.ativa.errors %}
+                    <p class="form-error">{{ form.ativa.errors.as_text }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Botões -->
+            <div class="flex justify-end space-x-4 pt-6">
+                <a href="{% url 'core:conta_list' %}" class="cancel-btn px-6 py-3 border border-gray-300 rounded-lg text-gray-700 dark:text-gray-300 dark:border-gray-600">
+                    Cancelar
+                </a>
+                <button type="submit" class="submit-btn px-6 py-3 text-white rounded-lg font-medium">
+                    {{ action }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Adiciona classes padrão aos inputs
+    document.querySelectorAll('input, select').forEach(el => {
+        el.classList.add('form-input', 'w-full', 'px-4', 'py-3', 'focus:ring-0');
+    });
+    
+    // Customização do checkbox
+    const checkbox = document.getElementById('{{ form.ativa.id_for_label }}');
+    if (checkbox) {
+        checkbox.classList.add('checkbox-input');
+    }
+    
+   document.addEventListener('DOMContentLoaded', function() {
+    const tipoContaSelect = document.getElementById('{{ form.tipo.id_for_label }}');
+    const agenciaGroup = document.querySelector('.agencia-group');
+    const numeroContaGroup = document.querySelector('.numero-conta-group');
+
+    function toggleAgenciaNumeroFields() {
+        const selectedType = tipoContaSelect.value;
+        if (selectedType === 'corrente' || selectedType === 'poupanca') {
+            agenciaGroup.style.display = 'block';
+            numeroContaGroup.style.display = 'block';
+        } else {
+            agenciaGroup.style.display = 'none';
+            numeroContaGroup.style.display = 'none';
+        }
+    }
+
+    // Executa na carga inicial
+    toggleAgenciaNumeroFields();
+
+    // Executa quando o tipo de conta muda
+    tipoContaSelect.addEventListener('change', toggleAgenciaNumeroFields);
+});
+</script>
+{% endblock %}
