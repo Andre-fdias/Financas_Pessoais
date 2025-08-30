@@ -1,4 +1,4 @@
-#!/home/andre/github-repositorio/Financas_Pessoais/venv/bin/python
+#!/home/andre/Repositorio/Financas_Pessoais/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

@@ -1,0 +1,188 @@
+{% load currency_filters %}
+
+<div class="max-w-2xl mx-auto p-6">
+    <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+        <i class="fas fa-{% if tipo == 'Entrada' %}arrow-down text-green-600{% else %}arrow-up text-red-600{% endif %} mr-3"></i>
+        Detalhes da Transação
+    </h2>
+    
+    <!-- Cabeçalho com Descrição e Valor -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Descrição</label>
+            <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ transacao.nome }}</p>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Valor</label>
+            <p class="text-lg font-bold {% if tipo == 'Entrada' %}text-green-600{% else %}text-red-600{% endif %}">
+                {% if tipo == 'Entrada' %}+{% else %}-{% endif %}{{ transacao.valor|br_currency }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Informações Básicas -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Conta</label>
+            <p class="text-gray-800 dark:text-white">{{ transacao.conta_bancaria.get_nome_banco_display }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                {{ transacao.conta_bancaria.get_tipo_display }}
+                {% if transacao.conta_bancaria.agencia and transacao.conta_bancaria.numero_conta %}
+                    - Ag: {{ transacao.conta_bancaria.agencia }} / CC: {{ transacao.conta_bancaria.numero_conta }}
+                {% endif %}
+            </p>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Data</label>
+            <p class="text-gray-800 dark:text-white">
+                {% if tipo == 'Entrada' %}
+                    {{ transacao.data|date:"d/m/Y" }}
+                {% else %}
+                    {{ transacao.data_vencimento|date:"d/m/Y" }}
+                {% endif %}
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Criado em: {{ transacao.data_criacao|date:"d/m/Y H:i" }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Campos Específicos para Saídas -->
+    {% if tipo == 'Saida' %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Categoria</label>
+            <p class="text-gray-800 dark:text-white">{{ transacao.get_categoria_display }}</p>
+            {% if transacao.subcategoria %}
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Subcategoria: {{ transacao.get_subcategoria_display }}
+            </p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Status</label>
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold {% if transacao.situacao == 'pago' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                <i class="fas fa-{% if transacao.situacao == 'pago' %}check-circle{% else %}clock{% endif %} mr-2"></i>
+                {{ transacao.get_situacao_display }}
+            </span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Forma de Pagamento</label>
+            <p class="text-gray-800 dark:text-white">{{ transacao.get_forma_pagamento_display }}</p>
+            {% if transacao.tipo_pagamento_detalhe %}
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Tipo: {{ transacao.get_tipo_pagamento_detalhe_display }}
+            </p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Recorrência</label>
+            <p class="text-gray-800 dark:text-white">
+                {% if transacao.recorrente and transacao.recorrente != 'unica' %}
+                    {{ transacao.get_recorrente_display }}
+                {% else %}
+                    Única
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Informações de Parcelamento -->
+    {% if transacao.tipo_pagamento_detalhe == 'parcelado' %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Parcelas</label>
+            <p class="text-gray-800 dark:text-white">
+                {{ transacao.quantidade_parcelas }}x de {{ transacao.valor_parcela|br_currency }}
+            </p>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Valor Total</label>
+            <p class="text-gray-800 dark:text-white font-semibold">
+                {{ transacao.valor|br_currency }}
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Data de Lançamento (específico para Saídas) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Data de Lançamento</label>
+            <p class="text-gray-800 dark:text-white">{{ transacao.data_lancamento|date:"d/m/Y" }}</p>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Data de Vencimento</label>
+            <p class="text-gray-800 dark:text-white">{{ transacao.data_vencimento|date:"d/m/Y" }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Campos Específicos para Entradas -->
+    {% if tipo == 'Entrada' %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Forma de Recebimento</label>
+            <p class="text-gray-800 dark:text-white">{{ transacao.get_forma_recebimento_display }}</p>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Data de Recebimento</label>
+            <p class="text-gray-800 dark:text-white">{{ transacao.data|date:"d/m/Y" }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Local -->
+    {% if transacao.local %}
+    <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Local</label>
+        <p class="text-gray-800 dark:text-white">{{ transacao.local }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Observações -->
+    {% if transacao.observacao %}
+    <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Observações</label>
+        <p class="text-gray-800 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">{{ transacao.observacao }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Informações de Sistema -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Criado em</label>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ transacao.data_criacao|date:"d/m/Y H:i" }}</p>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Última atualização</label>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ transacao.data_atualizacao|date:"d/m/Y H:i" }}</p>
+        </div>
+    </div>
+
+    <!-- Botões de Ação -->
+    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button onclick="fecharModal()" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+            Fechar
+        </button>
+        {% if tipo == 'Saida' and transacao.situacao == 'pendente' %}
+        <button onclick="marcarComoPago({{ transacao.id }})" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            <i class="fas fa-check-circle mr-2"></i>Marcar como Pago
+        </button>
+        {% endif %}
+        
+
+    </div>
+</div>
+

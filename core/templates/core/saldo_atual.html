@@ -1,78 +1,1093 @@
 {% extends 'core/base.html' %}
 {% load currency_filters %}
+{% load static %}
 
-{% block title %}Saldo Atual{% endblock %}
+{% block title %}Saldo Atual e Análise Financeira{% endblock %}
 
 {% block extra_head %}
-    <!-- Tailwind CSS CDN (se não estiver já no base.html) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome para ícones (se não estiver já no base.html) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
-        /* Estilos base do painel e outros elementos */
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(to right, #ece9e6, #ffffff); /* Fundo suave */
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }
+        
+        /* Estilo principal para painéis com efeito de vidro (Glassmorphism) */
         .glass-panel {
-            background-color: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1rem;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
         }
-        @supports not (backdrop-filter: blur(16px)) {
+
+        /* Fallback para navegadores que não suportam backdrop-filter */
+        @supports not (backdrop-filter: blur(12px)) {
             .glass-panel {
-                background-color: rgba(255, 255, 255, 0.9);
+                background: rgba(255, 255, 255, 0.95);
             }
         }
+        
+        /* Estilos para valores monetários positivos */
         .valor-positivo {
-            background-color: #f0fdf4;
-            color: #166534;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: 500;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
         }
+        
+        /* Estilos para valores monetários negativos */
         .valor-negativo {
-            background-color: #fef2f2;
-            color: #b91c1c;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: 500;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        /* Indicador de saúde financeira */
+        .health-indicator {
+            height: 8px;
+            border-radius: 4px;
+            transition: all 0.5s ease;
+        }
+        
+        .health-score {
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Ajustes para modo escuro */
+        .dark .valor-positivo {
+            background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+        }
+        
+        .dark .valor-negativo {
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+        }
+
+        /* Estilo para cards de estatísticas, com transição de hover */
+        .stats-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Estilo para linhas de tabela, com transição de hover */
+        .table-row {
+            transition: all 0.2s ease;
+        }
+        
+        .table-row:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+        }
+        
+        /* Estilo para títulos de cards */
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .dark .card-title {
+            color: #e5e7eb;
+        }
+
+        /* Estilo para valores grandes em cards */
+        .card-value {
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin-top: 0.5rem;
+        }
+
+        /* Altura fixa para containers de gráficos */
+        .chart-container {
+            height: 300px;
+            min-height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Badge para indicadores */
+        .indicator-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        /* Animações para transições suaves */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .slide-up {
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Estilo para botão de insights (feedback visual) */
+        .insight-button.loading {
+            background-color: #a78bfa; /* Cor mais clara */
+            cursor: not-allowed;
+        }
+
+        .insight-button.success {
+            background-color: #10b981; /* Verde */
         }
     </style>
 {% endblock %}
 
 {% block content %}
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6">Saldo Atual</h1>
-
-        <!-- Painel de Saldo Geral -->
-        <div class="glass-panel p-6 mb-6">
-            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">Saldo Geral</h2>
-            <p class="text-4xl font-extrabold {% if saldo_geral >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                {{ saldo_geral|floatformat:2|br_currency }} {# Alterado de 'currency' para 'br_currency' #}
-            </p>
-        </div>
-
-        <!-- Painel de Saldo por Conta -->
-        <div class="glass-panel p-6">
-            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Saldo por Conta</h2>
-            {% if saldo_por_conta %}
-                <ul class="space-y-4">
-                    {% for conta, saldo in saldo_por_conta.items %}
-                        <li class="flex justify-between items-center text-gray-700 dark:text-gray-300">
-                            <span class="text-lg font-medium">{{ conta }}</span>
-                            <span class="font-bold text-lg {% if saldo >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                                {{ saldo|floatformat:2|br_currency }} {# Alterado de 'currency' para 'br_currency' #}
-                            </span>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="text-gray-500 dark:text-gray-400">Nenhum saldo disponível. Cadastre suas contas e transações.</p>
-            {% endif %}
+<div class="glass-panel min-h-screen p-8 flex flex-col space-y-6">
+    <!-- Seção do Cabeçalho -->
+    <div class="glass-panel p-6 mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                    <i class="fas fa-chart-line mr-3 text-blue-600"></i>
+                    Saldo Financeiro
+                </h1>
+                <p class="text-xl text-gray-600 dark:text-gray-300 font-semibold">
+                    Visão completa da sua saúde financeira
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a href="{% url 'core:conta_create' %}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:bg-indigo-700 transition duration-300">
+                    <i class="fas fa-plus mr-1"></i> Adicionar Conta
+                </a>
+                <button id="refreshData" class="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:bg-green-700 transition duration-300">
+                    <i class="fas fa-sync-alt mr-1"></i> Atualizar
+                </button>
+            </div>
         </div>
     </div>
+    
+   <!-- Indicador de Saúde Financeira -->
+    <div class="glass-panel p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+            <i class="fas fa-heartbeat mr-3 text-red-500"></i>
+            Saúde Financeira
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="flex flex-col items-center justify-center p-4">
+                <div class="health-score" id="healthScore">0</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400 mt-2">Pontuação Geral</div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mt-3 dark:bg-gray-700">
+                    <div id="healthBar" class="health-indicator bg-green-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="flex flex-col">
+                <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-3">Indicadores Chave</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Reserva de Emergência</span>
+                        <span id="emergencyFundStatus" class="indicator-badge bg-gray-200 text-gray-800">Calculando...</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Relação Dívida/Renda</span>
+                        <span id="debtIncomeStatus" class="indicator-badge bg-gray-200 text-gray-800">Calculando...</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Taxa de Economia Mensal</span>
+                        <span id="savingsRateStatus" class="indicator-badge bg-gray-200 text-gray-800">Calculando...</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Ativos vs Passivos</span>
+                        <span id="assetsLiabilitiesStatus" class="indicator-badge bg-gray-200 text-gray-800">Calculando...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex flex-col">
+                <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-3">Recomendações</h3>
+                <ul id="recommendationsList" class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                    <li><i class="fas fa-spinner fa-spin mr-1"></i> Analisando sua situação...</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cards de saldos principais -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 stats-grid">
+        <div class="glass-panel p-6 stats-card border-l-4 border-blue-500 slide-up">
+            <div class="flex items-center justify-between">
+                <span class="card-title text-gray-800 dark:text-gray-200">Patrimônio Líquido</span>
+                <i class="fas fa-landmark text-3xl text-blue-500"></i>
+            </div>
+            <p id="patrimonioLiquidoCard" class="card-value">{{ patrimonio_liquido|br_currency }}</p>
+            <div class="mt-4 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                <span id="patrimonioTrend" class="mr-2">Seu patrimônio total</span>
+                <span id="patrimonioChange"></span>
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 stats-card border-l-4 border-green-500 slide-up" style="animation-delay: 0.1s;">
+            <div class="flex items-center justify-between">
+                <span class="card-title text-gray-800 dark:text-gray-200">Saldo Disponível</span>
+                <i class="fas fa-wallet text-3xl text-green-500"></i>
+            </div>
+            <p id="saldoDisponivelCard" class="card-value">{{ saldo_disponivel|br_currency }}</p>
+            <div class="mt-4 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                <span>Total em contas ativas para uso imediato</span>
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 stats-card border-l-4 border-purple-500 slide-up" style="animation-delay: 0.2s;">
+            <div class="flex items-center justify-between">
+                <span class="card-title text-gray-800 dark:text-gray-200">Fluxo Mensal</span>
+                <i class="fas fa-exchange-alt text-3xl text-purple-500"></i>
+            </div>
+            <p id="fluxoMensalCard" class="card-value">{{ fluxo_mensal|br_currency }}</p>
+            <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                <span>Total de Receitas - Total de Despesas no mês atual</span>
+            </div>
+            <div class="mt-1 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                <span>Despesas do Mês: <span id="despesasMesAtualCard">{{ despesas_mensais_medias|br_currency }}</span></span>
+            </div>
+        </div>
+
+        <div class="glass-panel p-6 stats-card border-l-4 border-amber-500 slide-up" style="animation-delay: 0.3s;">
+            <div class="flex items-center justify-between">
+                <span class="card-title text-gray-800 dark:text-gray-200">Reserva de Emergência</span>
+                <i class="fas fa-shield-alt text-3xl text-amber-500"></i>
+            </div>
+            <p id="reservaEmergenciaCard" class="card-value">{{ reserva_emergencia|br_currency }}</p>
+            <div class="mt-4 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                <span id="reservaStatus">Equivalente a <span id="mesesReserva">0</span> meses de despesas (Meta: 6 meses)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-chart-pie mr-2 text-rose-500"></i>
+                Distribuição do Patrimônio
+            </h2>
+            <div class="chart-container" id="distribuicaoPatrimonioChartContainer">
+                <canvas id="distribuicaoPatrimonioChart"></canvas>
+            </div>
+        </div>
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-chart-line mr-2 text-indigo-500"></i>
+                Evolução do Patrimônio (6 meses)
+            </h2>
+            <div class="chart-container" id="evolucaoPatrimonioChartContainer">
+                <canvas id="evolucaoPatrimonioChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Contas e Filtros -->
+    <div class="glass-panel p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center">
+                <i class="fas fa-credit-card mr-2 text-blue-500"></i>
+                Minhas Contas
+            </h2>
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="flex items-center space-x-2">
+                    <label for="tipoFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300">Tipo:</label>
+                    <select id="tipoFilter" class="p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">Todos</option>
+                        {% for tipo in tipos_conta %}
+                            <option value="{{ tipo.0 }}">{{ tipo.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <label for="statusFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</label>
+                    <select id="statusFilter" class="p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">Todos</option>
+                        <option value="ativa">Ativas</option>
+                        <option value="inativa">Inativas</option>
+                    </select>
+                </div>
+                <button id="clearFiltersBtn" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 transition-colors hidden">
+                    Limpar Filtros
+                </button>
+            </div>
+        </div>
+
+        <!-- Tags de filtros ativos -->
+        <div id="activeFiltersContainer" class="flex flex-wrap gap-2 mb-4">
+            <!-- Filtros ativos serão injetados aqui via JS -->
+        </div>
+
+        <!-- Tabela de Contas -->
+        <div class="overflow-x-auto relative shadow-md sm:rounded-lg">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="py-3 px-6">Nome</th>
+                        <th scope="col" class="py-3 px-6">Tipo</th>
+                        <th scope="col" class="py-3 px-6 text-right">Saldo Atual</th>
+                        <th scope="col" class="py-3 px-6 text-center">Status</th>
+                        <th scope="col" class="py-3 px-6">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="contas-list">
+                    <!-- Conteúdo da tabela será preenchido via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Seção do Assistente Financeiro Inteligente -->
+    <div class="glass-panel p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+            <i class="fas fa-robot mr-3 text-purple-500"></i>
+            Assistente Financeiro Inteligente
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <div class="flex items-start">
+                    <div class="bg-purple-100 p-3 rounded-full mr-4 dark:bg-purple-900/30">
+                        <i class="fas fa-lightbulb text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-800 dark:text-white">Insights Personalizados</h3>
+                        <p class="text-gray-600 dark:text-gray-400 text-sm">Análise automatizada baseada nos seus dados financeiros</p>
+                    </div>
+                </div>
+                
+                <button
+                    id="generateInsightBtn"
+                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-lg inline-flex items-center justify-center shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed pulse insight-button"
+                >
+                    <i class="fas fa-magic mr-2"></i>
+                    Gerar Insights Financeiros
+                </button>
+            </div>
+            
+            <div id="financialInsightContainer" class="bg-purple-50 border border-purple-200 rounded-lg p-5 dark:bg-purple-900/20 dark:border-purple-700">
+                <div class="flex items-center mb-3">
+                    <i class="fas fa-star text-yellow-500 mr-2"></i>
+                    <h3 class="font-semibold text-gray-800 dark:text-white">Seus Insights Financeiros</h3>
+                </div>
+                
+                <div id="loadingInsight" class="text-center py-8">
+                    <i class="fas fa-spinner fa-spin text-purple-600 text-2xl mb-3"></i>
+                    <p class="text-gray-600 dark:text-gray-400">Analisando seus dados financeiros...</p>
+                </div>
+                
+                <div id="financialInsightContent" class="hidden">
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Meta do Mês:</span>
+                            <span id="insightMonthlyGoal" class="text-sm font-semibold text-green-600">+R$ 0,00</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                            <div id="monthlyGoalBar" class="h-2 rounded-full bg-green-600" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="insightText" class="text-gray-700 dark:text-gray-300 text-sm mb-4"></div>
+                    
+                    <div class="flex flex-wrap gap-2">
+                        <span id="insightTag1" class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full dark:bg-blue-900 dark:text-blue-200 hidden"></span>
+                        <span id="insightTag2" class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full dark:bg-green-900 dark:text-green-200 hidden"></span>
+                        <span id="insightTag3" class="px-3 py-1 bg-amber-100 text-amber-800 text-xs rounded-full dark:bg-amber-900 dark:text-amber-200 hidden"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Adicione este botão temporariamente para debug -->
+<div class="text-center mt-4">
+    <button id="forceRenderCharts" class="bg-blue-500 text-white px-4 py-2 rounded">
+        Renderizar Gráficos
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Variável para definir o número ideal de meses para a reserva de emergência
+    const idealEmergencyMonths = 6; 
+
+    // Dados para os gráficos e cálculos
+    const financialData = {
+        saldoGeral: {{ saldo_geral|default:0 }},
+        saldoDisponivel: {{ saldo_disponivel|default:0 }},
+        patrimonioLiquido: {{ patrimonio_liquido|default:0 }},
+        fluxoMensal: {{ fluxo_mensal|default:0 }},
+        despesasMesAtual: {{ despesas_mensais_medias|default:0 }},
+        reservaEmergencia: {{ reserva_emergencia|default:0 }},
+        mesesReserva: 0,
+        despesasMensais: {{ despesas_mensais_medias|default:0 }},
+        receitasMensais: {{ receitas_mensais_medias|default:0 }},
+        taxaEconomia: {{ taxa_economia|default:0 }},
+        totalDividas: {{ total_dividas|default:0 }},
+        totalAtivos: {{ total_ativos|default:0 }},
+        evolucaoPatrimonio: JSON.parse('{{ evolucao_patrimonio|safe }}' || '[]'),
+        distribuicaoPatrimonio: {
+            labels: JSON.parse('{{ distribuicao_labels|safe }}' || '[]'),
+            values: JSON.parse('{{ distribuicao_values|safe }}' || '[]'),
+            colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
+        }
+    };
+    
+    // Calcula meses de reserva com base nas despesas mensais
+    if (financialData.despesasMensais > 0) {
+        financialData.mesesReserva = financialData.reservaEmergencia / financialData.despesasMensais;
+    }
+
+    const contasData = [
+        {% for conta in contas %}
+        {
+            id: {{ conta.id }},
+            nome_banco: "{{ conta.nome_banco }}",
+            get_nome_banco_display: "{{ conta.get_nome_banco_display }}",
+            tipo: "{{ conta.tipo }}",
+            get_tipo_display: "{{ conta.get_tipo_display }}",
+            saldo_atual: {{ conta.saldo_atual|default:0 }},
+            ativa: {{ conta.ativa|yesno:"true,false" }},
+            status_display: "{{ conta.ativa|yesno:'Ativa,Inativa' }}"
+        },
+        {% endfor %}
+    ];
+    
+    const tiposContaChoices = [
+        {% for tipo in tipos_conta %}
+        ["{{ tipo.0 }}", "{{ tipo.1 }}"],
+        {% endfor %}
+    ];
+
+    // Mapeia os códigos de tipo de conta para seus nomes de exibição
+    const getTipoDisplayName = (code) => {
+        const type = tiposContaChoices.find(item => item[0] === code);
+        return type ? type[1] : '';
+    };
+
+    // Função para formatar moeda
+    function formatCurrency(value) {
+        if (value === null || value === undefined) return 'R$ 0,00';
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
+    }
+
+    // Função para calcular a saúde financeira
+    function calculateFinancialHealth() {
+        let score = 0;
+        const recommendations = [];
+        
+        // 1. Reserva de emergência (máx 25 pontos)
+        if (financialData.mesesReserva >= idealEmergencyMonths) {
+            score += 25;
+            document.getElementById('emergencyFundStatus').textContent = 'Adequada';
+            document.getElementById('emergencyFundStatus').className = 'indicator-badge bg-green-100 text-green-800';
+            recommendations.push("Parabéns! Sua reserva de emergência está adequada.");
+        } else if (financialData.mesesReserva >= (idealEmergencyMonths / 2)) {
+            score += 15;
+            document.getElementById('emergencyFundStatus').textContent = 'Em Construção';
+            document.getElementById('emergencyFundStatus').className = 'indicator-badge bg-yellow-100 text-yellow-800';
+            recommendations.push(`Continue construindo sua reserva de emergência (meta de ${idealEmergencyMonths} meses de despesas).`);
+        } else {
+            document.getElementById('emergencyFundStatus').textContent = 'Insuficiente';
+            document.getElementById('emergencyFundStatus').className = 'indicator-badge bg-red-100 text-red-800';
+            recommendations.push(`Priorize construir sua reserva de emergência para ${idealEmergencyMonths} meses de despesas.`);
+        }
+        
+        // 2. Taxa de economia (máx 25 pontos)
+        if (financialData.taxaEconomia >= 20) {
+            score += 25;
+            document.getElementById('savingsRateStatus').textContent = 'Excelente';
+            document.getElementById('savingsRateStatus').className = 'indicator-badge bg-green-100 text-green-800';
+            recommendations.push("Excelente! Sua taxa de economia está acima da média.");
+        } else if (financialData.taxaEconomia >= 10) {
+            score += 15;
+            document.getElementById('savingsRateStatus').textContent = 'Boa';
+            document.getElementById('savingsRateStatus').className = 'indicator-badge bg-yellow-100 text-yellow-800';
+            recommendations.push("Sua taxa de economia é boa. Tente aumentar para 20% para acelerar seus objetivos.");
+        } else {
+            document.getElementById('savingsRateStatus').textContent = 'Baixa';
+            document.getElementById('savingsRateStatus').className = 'indicator-badge bg-red-100 text-red-800';
+            recommendations.push("Sua taxa de economia está baixa. Considere formas de reduzir despesas ou aumentar sua renda.");
+        }
+        
+        // 3. Fluxo mensal positivo (máx 20 pontos)
+        if (financialData.fluxoMensal > 0) {
+            score += 20;
+            recommendations.push("Seu fluxo mensal está positivo, o que é ótimo para o acúmulo de patrimônio.");
+        } else {
+            recommendations.push("Seu fluxo mensal está negativo. Reveja suas despesas para equilibrar suas finanças.");
+        }
+
+        // 4. Relação Dívida/Renda (máx 15 pontos)
+        let debtToIncomeRatio = 0;
+        if (financialData.receitasMensais > 0) {
+            debtToIncomeRatio = (financialData.totalDividas / financialData.receitasMensais) * 100;
+        }
+        
+        if (debtToIncomeRatio <= 30) {
+            score += 15;
+            document.getElementById('debtIncomeStatus').textContent = 'Saudável';
+            document.getElementById('debtIncomeStatus').className = 'indicator-badge bg-green-100 text-green-800';
+            recommendations.push("Sua relação dívida/renda é saudável. Mantenha o controle de suas dívidas.");
+        } else if (debtToIncomeRatio <= 50) {
+            score += 10;
+            document.getElementById('debtIncomeStatus').textContent = 'Atenção';
+            document.getElementById('debtIncomeStatus').className = 'indicator-badge bg-yellow-100 text-yellow-800';
+            recommendations.push("Sua relação dívida/renda requer atenção. Considere estratégias para reduzir suas dívidas.");
+        } else {
+            document.getElementById('debtIncomeStatus').textContent = 'Crítico';
+            document.getElementById('debtIncomeStatus').className = 'indicator-badge bg-red-100 text-red-800';
+            recommendations.push("Sua relação dívida/renda é crítica. Priorize a quitação de dívidas de alto custo.");
+        }
+
+        // 5. Ativos vs Passivos (máx 15 pontos)
+        let assetsLiabilitiesRatio = 0;
+        if (financialData.totalDividas > 0) {
+            assetsLiabilitiesRatio = (financialData.totalAtivos / financialData.totalDividas);
+        } else if (financialData.totalAtivos > 0) {
+             assetsLiabilitiesRatio = Infinity;
+        }
+        
+        if (assetsLiabilitiesRatio >= 3) {
+            score += 15;
+            document.getElementById('assetsLiabilitiesStatus').textContent = 'Forte';
+            document.getElementById('assetsLiabilitiesStatus').className = 'indicator-badge bg-green-100 text-green-800';
+            recommendations.push("Sua relação Ativos/Passivos é forte, indicando solidez financeira.");
+        } else if (assetsLiabilitiesRatio >= 1.5) {
+            score += 10;
+            document.getElementById('assetsLiabilitiesStatus').textContent = 'Boa';
+            document.getElementById('assetsLiabilitiesStatus').className = 'indicator-badge bg-yellow-100 text-yellow-800';
+            recommendations.push("Sua relação Ativos/Passivos é boa, mas há espaço para fortalecer seu patrimônio.");
+        } else {
+            document.getElementById('assetsLiabilitiesStatus').textContent = 'Fraca';
+            document.getElementById('assetsLiabilitiesStatus').className = 'indicator-badge bg-red-100 text-red-800';
+            recommendations.push("Sua relação Ativos/Passivos é fraca. Foque em aumentar seus ativos e/ou reduzir seus passivos.");
+        }
+
+        // Ajustar para não ultrapassar 100
+        score = Math.min(Math.round(score), 100);
+        
+        return { score, recommendations };
+    }
+
+    // Função para atualizar a interface com a saúde financeira
+    function updateFinancialHealthUI() {
+        const { score, recommendations } = calculateFinancialHealth();
+        
+        // Atualizar pontuação
+        document.getElementById('healthScore').textContent = score;
+        document.getElementById('healthBar').style.width = `${score}%`;
+        
+        // Atualizar cor baseada na pontuação
+        let healthColorClass;
+        if (score >= 80) {
+            healthColorClass = 'bg-green-600';
+            document.getElementById('healthScore').classList.add('text-green-600');
+            document.getElementById('healthScore').classList.remove('text-yellow-600', 'text-red-600');
+        } else if (score >= 50) {
+            healthColorClass = 'bg-yellow-500';
+            document.getElementById('healthScore').classList.add('text-yellow-600');
+            document.getElementById('healthScore').classList.remove('text-green-600', 'text-red-600');
+        } else {
+            healthColorClass = 'bg-red-600';
+            document.getElementById('healthScore').classList.add('text-red-600');
+            document.getElementById('healthScore').classList.remove('text-green-600', 'text-yellow-600');
+        }
+        document.getElementById('healthBar').className = `health-indicator ${healthColorClass} h-2.5 rounded-full`;
+        
+        // Atualizar informações de reserva de emergência no card principal
+        document.getElementById('mesesReserva').textContent = financialData.mesesReserva.toFixed(1);
+
+        // Atualizar recomendações
+        const recommendationsList = document.getElementById('recommendationsList');
+        recommendationsList.innerHTML = '';
+        
+        recommendations.slice(0, 3).forEach(rec => {
+            const li = document.createElement('li');
+            li.className = 'flex items-start';
+            li.innerHTML = `<i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i><span>${rec}</span>`;
+            recommendationsList.appendChild(li);
+        });
+
+        // Atualizar Despesas do Mês no card de Fluxo Mensal
+        document.getElementById('despesasMesAtualCard').textContent = formatCurrency(financialData.despesasMesAtual);
+    }
+
+    // Função para renderizar a tabela de contas
+    function renderAccountsTable(accounts) {
+        const tableBody = document.getElementById('contas-list');
+        tableBody.innerHTML = '';
+
+        if (!accounts || accounts.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td colspan="5" class="py-4 text-center text-gray-500 dark:text-gray-400">Nenhuma conta encontrada com os filtros aplicados.</td>`;
+            tableBody.appendChild(row);
+            return;
+        }
+
+        accounts.forEach(conta => {
+            const row = document.createElement('tr');
+            row.classList.add('table-row', 'bg-white', 'border-b', 'dark:bg-gray-800', 'dark:border-gray-700');
+            const valorClass = conta.saldo_atual >= 0 ? 'valor-positivo' : 'valor-negativo';
+
+            row.innerHTML = `
+                <td class="py-4 px-6 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    ${conta.get_nome_banco_display || conta.nome_banco}
+                </td>
+                <td class="py-4 px-6">
+                    ${conta.get_tipo_display || getTipoDisplayName(conta.tipo)}
+                </td>
+                <td class="py-4 px-6 text-right">
+                    <span class="${valorClass}">${formatCurrency(conta.saldo_atual)}</span>
+                </td>
+                <td class="py-4 px-6 text-center">
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${
+                        conta.ativa
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                    }">
+                        ${conta.status_display}
+                    </span>
+                </td>
+                <td class="py-4 px-6 flex items-center space-x-2">
+                    <a href="{% url 'core:conta_update' 0 %}".replace('0', conta.id) class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 transition duration-150 ease-in-out">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{% url 'core:conta_delete' 0 %}".replace('0', conta.id) class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition duration-150 ease-in-out">
+                        <i class="fas fa-trash-alt"></i>
+                    </a>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    // Função para renderizar as tags de filtro ativo
+    function renderActiveFilters(currentTipoFilter, currentStatusFilter) {
+        const activeFiltersContainer = document.getElementById('activeFiltersContainer');
+        activeFiltersContainer.innerHTML = '';
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        let filtersAreActive = false;
+
+        if (currentTipoFilter) {
+            filtersAreActive = true;
+            const span = document.createElement('span');
+            span.className = "bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium dark:bg-blue-900 dark:text-blue-200 filter-pill";
+            span.innerHTML = `
+                Tipo: ${getTipoDisplayName(currentTipoFilter)}
+                <button data-filter-type="tipo" class="ml-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-600">×</button>
+            `;
+            activeFiltersContainer.appendChild(span);
+        }
+
+        if (currentStatusFilter) {
+            filtersAreActive = true;
+            const span = document.createElement('span');
+            span.className = "bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium dark:bg-purple-900 dark:text-purple-200 filter-pill";
+            span.innerHTML = `
+                Status: ${currentStatusFilter === 'ativa' ? 'Ativas' : 'Inativas'}
+                <button data-filter-type="status" class="ml-2 text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-600">×</button>
+            `;
+            activeFiltersContainer.appendChild(span);
+        }
+
+        if (filtersAreActive) {
+            clearFiltersBtn.classList.remove('hidden');
+        } else {
+            clearFiltersBtn.classList.add('hidden');
+        }
+
+        // Adiciona listeners aos botões "x" das tags de filtro
+        activeFiltersContainer.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const filterType = event.target.dataset.filterType;
+                if (filterType === 'tipo') {
+                    document.getElementById('tipoFilter').value = '';
+                } else if (filterType === 'status') {
+                    document.getElementById('statusFilter').value = '';
+                }
+                applyFilters();
+            });
+        });
+    }
+
+    // Função para inicializar os gráficos
+    function initializeCharts() {
+        console.log("Inicializando gráficos...");
+        
+        // Gráfico de Distribuição do Patrimônio
+        const distribuicaoChartElement = document.getElementById('distribuicaoPatrimonioChart');
+        const distribuicaoChartContainer = document.getElementById('distribuicaoPatrimonioChartContainer');
+
+        if (financialData.distribuicaoPatrimonio && 
+            financialData.distribuicaoPatrimonio.labels && 
+            financialData.distribuicaoPatrimonio.labels.length > 0 && 
+            financialData.distribuicaoPatrimonio.values && 
+            financialData.distribuicaoPatrimonio.values.length > 0 &&
+            distribuicaoChartElement) {
+            
+            console.log("Criando gráfico de distribuição", financialData.distribuicaoPatrimonio);
+            
+            // Destruir gráfico existente se houver
+            if (window.distribuicaoChartInstance) {
+                window.distribuicaoChartInstance.destroy();
+            }
+            
+            window.distribuicaoChartInstance = new Chart(distribuicaoChartElement.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: financialData.distribuicaoPatrimonio.labels,
+                    datasets: [{
+                        data: financialData.distribuicaoPatrimonio.values,
+                        backgroundColor: financialData.distribuicaoPatrimonio.colors,
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgb(107, 114, 128)',
+                                padding: 20,
+                                usePointStyle: true,
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else if (distribuicaoChartContainer) {
+            console.log("Sem dados para gráfico de distribuição");
+            distribuicaoChartContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Não há dados suficientes para exibir a distribuição do patrimônio.</p>';
+        }
+
+        // Gráfico de Evolução do Patrimônio
+        const evolucaoChartElement = document.getElementById('evolucaoPatrimonioChart');
+        const evolucaoChartContainer = document.getElementById('evolucaoPatrimonioChartContainer');
+
+        if (financialData.evolucaoPatrimonio && 
+            financialData.evolucaoPatrimonio.length > 0 && 
+            evolucaoChartElement) {
+            
+            console.log("Criando gráfico de evolução", financialData.evolucaoPatrimonio);
+            
+            const labels = financialData.evolucaoPatrimonio.map(item => item.mes);
+            const data = financialData.evolucaoPatrimonio.map(item => item.valor);
+            
+            // Destruir gráfico existente se houver
+            if (window.evolucaoChartInstance) {
+                window.evolucaoChartInstance.destroy();
+            }
+            
+            window.evolucaoChartInstance = new Chart(evolucaoChartElement.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Patrimônio Líquido',
+                        data: data,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#fff',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Patrimônio: ${formatCurrency(context.raw)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: 'rgba(209, 213, 219, 0.2)' },
+                            ticks: {
+                                color: 'rgb(107, 114, 128)',
+                                callback: function(value) { return formatCurrency(value); }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { 
+                                color: 'rgb(107, 114, 128)',
+                                maxRotation: 0
+                            }
+                        }
+                    }
+                }
+            });
+        } else if (evolucaoChartContainer) {
+            console.log("Sem dados para gráfico de evolução");
+            evolucaoChartContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Não há dados históricos suficientes para exibir a evolução do patrimônio.</p>';
+        }
+    }
+
+    // Adicionar redimensionamento responsivo
+    window.addEventListener('resize', function() {
+        if (window.distribuicaoChartInstance) {
+            window.distribuicaoChartInstance.resize();
+        }
+        if (window.evolucaoChartInstance) {
+            window.evolucaoChartInstance.resize();
+        }
+    });
+
+    // Função para gerar insights financeiros
+    function generateFinancialInsights() {
+        const loadingElement = document.getElementById('loadingInsight');
+        const contentElement = document.getElementById('financialInsightContent');
+        const insightTextElement = document.getElementById('insightText');
+        const monthlyGoalElement = document.getElementById('insightMonthlyGoal');
+        const monthlyGoalBar = document.getElementById('monthlyGoalBar');
+        const generateInsightBtn = document.getElementById('generateInsightBtn');
+        
+        // Mostrar loading e desabilitar botão
+        generateInsightBtn.classList.add('loading');
+        generateInsightBtn.setAttribute('disabled', 'true');
+        generateInsightBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Gerando Insights...';
+        loadingElement.classList.remove('hidden');
+        contentElement.classList.add('hidden');
+        
+        setTimeout(() => {
+            // Calcular meta do mês (aumentar patrimônio em 3% ou um valor fixo)
+            const monthlyGoal = financialData.patrimonioLiquido * 0.03; 
+            const goalProgress = Math.min(Math.max(financialData.fluxoMensal / monthlyGoal, 0), 1) * 100;
+            
+            monthlyGoalElement.textContent = `+${formatCurrency(monthlyGoal)}`;
+            monthlyGoalBar.style.width = `${goalProgress}%`;
+            monthlyGoalBar.className = `h-2 rounded-full ${goalProgress >= 100 ? 'bg-green-600' : 'bg-yellow-500'}`;
+
+            // Gerar insights baseados na situação financeira
+            let insight = "";
+            const tags = [];
+            
+            if (financialData.mesesReserva < idealEmergencyMonths) {
+                insight += `💡 <strong>Reserva de Emergência Insuficiente:</strong> Você tem apenas ${financialData.mesesReserva.toFixed(1)} meses de despesas guardados. A meta é de ${idealEmergencyMonths} meses. Priorize aumentar sua reserva para maior segurança financeira. `;
+                tags.push("Reserva Insuficiente");
+            } else {
+                insight += `✅ <strong>Reserva de Emergência Adequada:</strong> Com ${financialData.mesesReserva.toFixed(1)} meses de despesas, sua reserva está saudável. Considere direcionar excedentes para investimentos de longo prazo. `;
+                tags.push("Reserva OK");
+            }
+            
+            if (financialData.taxaEconomia < 10) {
+                insight += `📉 <strong>Economia Baixa:</strong> Sua taxa de economia (${financialData.taxaEconomia.toFixed(1)}%) está abaixo do recomendado (10-20%). Revise seus gastos e identifique áreas para reduzir despesas. `;
+                tags.push("Economia Baixa");
+            } else if (financialData.taxaEconomia >= 20) {
+                insight += `🚀 <strong>Economia Excelente:</strong> Parabéns! Sua taxa de economia (${financialData.taxaEconomia.toFixed(1)}%) está acima da média. Continue assim para alcançar seus objetivos financeiros mais rapidamente. `;
+                tags.push("Economia Alta");
+            }
+            
+            if (financialData.fluxoMensal < 0) {
+                insight += `⚠️ <strong>Fluxo de Caixa Negativo:</strong> Seus gastos (${formatCurrency(financialData.despesasMesAtual)}) estão maiores que suas receitas este mês (${formatCurrency(financialData.fluxoMensal + financialData.despesasMesAtual)}). Isso não é sustentável a longo prazo. Analise suas despesas para identificar onde pode cortar. `;
+                tags.push("Fluxo Negativo");
+            } else {
+                insight += `✅ <strong>Fluxo de Caixa Positivo:</strong> Seu fluxo de caixa (${formatCurrency(financialData.fluxoMensal)}) está positivo este mês, o que é excelente para construir patrimônio. `;
+                tags.push("Fluxo Positivo");
+            }
+
+            const debtToIncomeRatio = (financialData.receitasMensais > 0 ? (financialData.totalDividas / financialData.receitasMensais) * 100 : 0);
+            if (debtToIncomeRatio > 50) {
+                insight += `🚨 <strong>Alta Relação Dívida/Renda:</strong> Sua dívida total representa ${debtToIncomeRatio.toFixed(1)}% de sua receita mensal. Isso é preocupante. Considere um plano agressivo de quitação de dívidas. `;
+                tags.push("Dívida Alta");
+            } else if (debtToIncomeRatio > 30) {
+                insight += `🔔 <strong>Atenção à Dívida/Renda:</strong> Sua dívida total representa ${debtToIncomeRatio.toFixed(1)}% de sua receita mensal. Fique atento e trabalhe para reduzir este percentual. `;
+                tags.push("Dívida OK");
+            }
+
+            const assetsLiabilitiesRatio = financialData.totalDividas > 0 ? (financialData.totalAtivos / financialData.totalDividas) : (financialData.totalAtivos > 0 ? Infinity : 0);
+            if (assetsLiabilitiesRatio < 1.5) {
+                insight += `📉 <strong>Baixa Relação Ativos/Passivos:</strong> Seus ativos são menores ou pouco maiores que seus passivos. Concentre-se em construir ativos ou reduzir dívidas para fortalecer seu patrimônio. `;
+                tags.push("Patrimônio Fraco");
+            } else if (assetsLiabilitiesRatio >= 3) {
+                insight += `💪 <strong>Forte Relação Ativos/Passivos:</strong> Sua relação Ativos/Passivos (${assetsLiabilitiesRatio.toFixed(1)}x) é robusta, indicando uma excelente saúde patrimonial. `;
+                tags.push("Patrimônio Forte");
+            }
+            
+            // Se não há insights específicos, mostrar mensagem positiva
+            if (insight === "") {
+                insight = "🎉 <strong>Situação Financeira Saudável:</strong> Parabéns! Suas finanças estão em excelente estado. Continue com esse controle e considere estabelecer novas metas financeiras para o próximo trimestre.";
+                tags.push("Excelente");
+            }
+            
+            insightTextElement.innerHTML = insight;
+            
+            // Mostrar tags
+            document.getElementById('insightTag1').classList.add('hidden');
+            document.getElementById('insightTag2').classList.add('hidden');
+            document.getElementById('insightTag3').classList.add('hidden');
+            
+            tags.slice(0, 3).forEach((tag, index) => {
+                const tagElement = document.getElementById(`insightTag${index + 1}`);
+                tagElement.textContent = tag;
+                tagElement.classList.remove('hidden');
+            });
+            
+            // Esconder loading e mostrar conteúdo
+            loadingElement.classList.add('hidden');
+            contentElement.classList.remove('hidden');
+
+            // Atualizar botão para estado de sucesso
+            generateInsightBtn.classList.remove('loading');
+            generateInsightBtn.classList.add('success');
+            generateInsightBtn.innerHTML = '<i class="fas fa-check mr-2"></i> Insights Gerados!';
+            setTimeout(() => {
+                generateInsightBtn.classList.remove('success');
+                generateInsightBtn.removeAttribute('disabled');
+                generateInsightBtn.innerHTML = '<i class="fas fa-magic mr-2"></i> Gerar Insights Financeiros';
+            }, 3000);
+            
+        }, 2000);
+    }
+
+    // Lógica principal de inicialização e filtragem
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("DOM carregado, inicializando...");
+        
+        // Inicializar gráficos após um pequeno delay para garantir que o DOM esteja pronto
+        setTimeout(() => {
+            initializeCharts();
+        }, 100);
+        
+        // Atualizar saúde financeira
+        updateFinancialHealthUI();
+        
+        // Renderizar tabela inicialmente com todos os dados
+        renderAccountsTable(contasData);
+        
+        // Configurar filtros
+        const tipoFilter = document.getElementById('tipoFilter');
+        const statusFilter = document.getElementById('statusFilter');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        const generateInsightBtn = document.getElementById('generateInsightBtn');
+        const refreshButton = document.getElementById('refreshData');
+
+        function applyFilters() {
+            const tipo = tipoFilter.value;
+            const status = statusFilter.value;
+
+            let filteredAccounts = contasData;
+
+            if (tipo) {
+                filteredAccounts = filteredAccounts.filter(conta => conta.tipo === tipo);
+            }
+            if (status) {
+                filteredAccounts = filteredAccounts.filter(conta => 
+                    status === 'ativa' ? conta.ativa : !conta.ativa
+                );
+            }
+            renderAccountsTable(filteredAccounts);
+            renderActiveFilters(tipo, status);
+        }
+
+        tipoFilter.addEventListener('change', applyFilters);
+        statusFilter.addEventListener('change', applyFilters);
+
+        clearFiltersBtn.addEventListener('click', () => {
+            tipoFilter.value = '';
+            statusFilter.value = '';
+            applyFilters();
+        });
+        
+        // Botão de gerar insights
+        generateInsightBtn.addEventListener('click', generateFinancialInsights);
+        
+        // Botão de atualizar
+        refreshButton.addEventListener('click', () => {
+            refreshButton.innerHTML = '<i class="fas fa-sync-alt fa-spin mr-1"></i> Atualizando';
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        });
+
+        // Aplica os filtros e renderiza as tags ao carregar a página
+        applyFilters();
+        
+        // Animar elementos de forma sequencial
+        setTimeout(() => {
+            document.querySelectorAll('.slide-up').forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.1}s`;
+                el.classList.add('slide-up');
+            });
+        }, 500);
+    });
+
+    // Verificar se a página está totalmente carregada
+    if (document.readyState === 'complete') {
+        console.log("Página já carregada, inicializando gráficos...");
+        setTimeout(() => {
+            initializeCharts();
+        }, 100);
+    } else {
+        window.addEventListener('load', function() {
+            console.log("Página carregada, inicializando gráficos...");
+            setTimeout(() => {
+                initializeCharts();
+            }, 100);
+        });
+    }
+</script>
 {% endblock %}

@@ -1,0 +1,437 @@
+{% load static %}
+{% load currency_filters %}
+{% load widget_tweaks %} {# Adicionado para permitir o uso do filtro 'attr' #}
+
+{# Este é o conteúdo que será carregado dinamicamente dentro do modal #}
+<div class="bg-white p-8 rounded-lg shadow-xl relative w-full max-w-lg mx-auto transform transition-all duration-300">
+    <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Transferência entre Contas</h2>
+    <button id="close-transfer-modal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors">
+        <i class="fas fa-times text-xl"></i>
+    </button>
+
+    <form id="transfer-form" method="post" action="{% url 'core:transferencia_create' %}" class="space-y-6">
+        {% csrf_token %}
+
+        <div class="input-group">
+            <label for="{{ form.conta_origem.id_for_label }}" class="form-label flex items-center">
+                <i class="fas fa-arrow-circle-up mr-2 text-red-500"></i>
+                {{ form.conta_origem.label }}
+            </label>
+            {{ form.conta_origem }}
+            <p class="form-error" id="conta_origem-error"></p>
+            <div id="saldo-origem-display" class="mt-2 text-sm font-medium text-gray-600">
+                Selecione uma conta para ver o saldo disponível.
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="{{ form.conta_destino.id_for_label }}" class="form-label flex items-center">
+                <i class="fas fa-arrow-circle-down mr-2 text-green-500"></i>
+                {{ form.conta_destino.label }}
+            </label>
+            {{ form.conta_destino }}
+            <p class="form-error" id="conta_destino-error"></p>
+        </div>
+
+        <div class="input-group">
+            <label for="{{ form.valor.id_for_label }}" class="form-label flex items-center">
+                <i class="fas fa-money-bill-wave mr-2 text-purple-500"></i>
+                {{ form.valor.label }}
+            </label>
+            <div class="relative">
+                {# span com o R$ fixo, posicionado com absolute e pl-3 para afastar #}
+                <span class="absolute inset-y-0 left-3 flex items-center text-gray-500 font-semibold text-sm">R$</span>
+                {# O input terá a classe pl-8 para dar espaço ao R$, aplicada via attr filter #}
+                {{ form.valor|attr:"class:form-input currency pl-8" }}
+            </div>
+            <p class="form-error" id="valor-error"></p>
+        </div>
+        
+        <div class="input-group">
+            <label for="{{ form.descricao.id_for_label }}" class="form-label flex items-center">
+                <i class="fas fa-pencil-alt mr-2 text-gray-500"></i>
+                {{ form.descricao.label }}
+            </label>
+            {{ form.descricao }}
+            <p class="form-error" id="descricao-error"></p>
+        </div>
+
+        {# Campo para exibir erros não-campo (ex: __all__) #}
+        {% if form.non_field_errors %}
+            <div class="non-field-errors-container bg-red-50 border-l-4 border-red-500 p-4 dark:bg-red-900/20 dark:border-red-700 mb-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-500 dark:text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-700 dark:text-red-300">{{ form.non_field_errors|join:"<br>"|safe }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="flex justify-center mt-8 space-x-4">
+            <button type="button" id="cancel-transfer-btn" class="cancel-btn px-6 py-3 border border-gray-300 rounded-xl text-gray-700 flex items-center transition-all hover:shadow-md">
+                <i class="fas fa-times mr-2"></i>
+                Cancelar
+            </button>
+            <button type="submit" class="submit-btn text-white font-medium py-2 px-4 rounded-lg inline-flex items-center">
+                <i class="fas fa-exchange-alt mr-2"></i>
+                Realizar Transferência
+            </button>
+        </div>
+    </form>
+</div>
+
+{# Script for transfer modal and currency formatting - MOVIDO PARA AQUI #}
+<script>
+    // As funções getCookie, showDynamicMessage e displayFormErrors foram movidas para base.html
+    // e devem ser acessíveis globalmente. Se não estiverem, devem ser replicadas aqui ou importadas.
+    // Para este escopo do modal, vamos supor que estão acessíveis ou definí-las aqui localmente
+    // para garantir o funcionamento.
+
+    // Replicando funções globais para garantir o funcionamento independente do modal
+    // Caso já estejam em base.html e sejam globais (window.funcName), pode remover estas réplicas.
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function showDynamicMessage(message, type = 'success') {
+        const messageElement = document.createElement('div');
+        messageElement.className = `${type}-message`;
+        messageElement.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2"></i> ${message}`;
+        document.body.appendChild(messageElement);
+        
+        setTimeout(() => {
+            messageElement.classList.add('show');
+            setTimeout(() => {
+                messageElement.classList.remove('show');
+                setTimeout(() => messageElement.remove(), 500); // Remove depois da transição
+            }, 3000); // Tempo de exibição da mensagem
+        }, 100); // Pequeno delay para a transição
+    }
+
+    function displayFormErrors(formElement, errors) {
+        // Limpa erros anteriores
+        formElement.querySelectorAll('.form-error').forEach(el => {
+            el.textContent = '';
+            el.style.display = 'none';
+            const inputField = formElement.querySelector(`[name="${el.id.replace('-error', '')}"]`);
+            if (inputField) {
+                inputField.classList.remove('border-red-500');
+            }
+        });
+        
+        // Remove erros não-campo anteriores
+        const existingNonFieldErrors = formElement.querySelector('.non-field-errors-container');
+        if (existingNonFieldErrors) existingNonFieldErrors.remove();
+
+        for (const field in errors) {
+            if (field === '__all__') {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'non-field-errors-container bg-red-50 border-l-4 border-red-500 p-4 dark:bg-red-900/20 dark:border-red-700 mb-4';
+                errorDiv.innerHTML = `
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-500 dark:text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-red-700 dark:text-red-300">${errors[field].join('<br>')}</p>
+                        </div>
+                    </div>
+                `;
+                formElement.prepend(errorDiv);
+            } else {
+                const errorElement = formElement.querySelector(`#${field}-error`);
+                if (errorElement) {
+                    errorElement.textContent = errors[field].join(', ');
+                    errorElement.style.display = 'block';
+                    const inputField = formElement.querySelector(`[name="${field}"]`);
+                    if (inputField) {
+                        inputField.classList.add('border-red-500');
+                    }
+                }
+            }
+        }
+
+    // Função corrigida para formatação monetária com controle de cursor
+    function formatarMoeda(input) {
+        if (!input) return;
+        
+        // Guarda a posição do cursor e a seleção
+        const selectionStart = input.selectionStart;
+        const selectionEnd = input.selectionEnd;
+        const originalValue = input.value;
+        
+        // Remove tudo que não é dígito
+        let value = input.value.replace(/\D/g, '');
+        
+        // Se estiver vazio, define como zero
+        if (value === '') {
+            input.value = '0,00';
+            input.setSelectionRange(4, 4); // Posiciona após "0,00"
+            return;
+        }
+        
+        // Remove zeros à esquerda
+        value = value.replace(/^0+/, '');
+        if (value === '') {
+            input.value = '0,00';
+            input.setSelectionRange(4, 4);
+            return;
+        }
+        
+        // Adiciona zeros à esquerda para ter pelo menos 3 dígitos (para centavos)
+        value = value.padStart(3, '0');
+        
+        // Separa reais e centavos
+        const reais = value.slice(0, -2);
+        const centavos = value.slice(-2);
+        
+        // Formata os reais com separadores de milhar
+        const formattedReais = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        
+        // Atualiza o valor do campo
+        input.value = formattedReais + ',' + centavos;
+        
+        // Calcula a nova posição do cursor
+        let newCursorPosition = selectionStart;
+        
+        // Se estamos adicionando caracteres (digitação normal)
+        if (input.value.length > originalValue.length) {
+            // Verifica se foi adicionado um separador de milhar
+            const addedChars = input.value.length - originalValue.length;
+            if (addedChars === 1 && input.value[selectionStart - 1] === '.') {
+                // Se um ponto foi adicionado, move o cursor para frente
+                newCursorPosition = selectionStart + 1;
+            }
+        }
+        // Se estamos removendo caracteres (backspace/delete)
+        else if (input.value.length < originalValue.length) {
+            // Verifica se foi removido um separador de milhar
+            const removedChars = originalValue.length - input.value.length;
+            if (removedChars === 1 && originalValue[selectionStart] === '.') {
+                // Se um ponto foi removido, move o cursor para trás
+                newCursorPosition = selectionStart - 1;
+            }
+        }
+        
+        // Garante que a posição do cursor está dentro dos limites
+        newCursorPosition = Math.max(0, Math.min(newCursorPosition, input.value.length));
+        
+        // Reposiciona o cursor
+        input.setSelectionRange(newCursorPosition, newCursorPosition);
+    }
+
+    // Função para formatação inicial (quando o campo perde o foco)
+    function formatarMoedaBlur(input) {
+        if (!input) return;
+        
+        let value = input.value.replace(/\D/g, '');
+        
+        if (value === '') {
+            input.value = '0,00';
+            return;
+        }
+        
+        value = value.replace(/^0+/, '');
+        if (value === '') {
+            input.value = '0,00';
+            return;
+        }
+        
+        value = value.padStart(3, '0');
+        const reais = value.slice(0, -2);
+        const centavos = value.slice(-2);
+        const formattedReais = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        
+        input.value = formattedReais + ',' + centavos;
+    }
+
+    // Função para formatar o valor monetário para exibição (não para input)
+    function formatCurrencyForDisplay(value) {
+        if (value === null || value === undefined) {
+            return "R$ 0,00";
+        }
+        let numericValue = parseFloat(value);
+        if (isNaN(numericValue)) {
+            return "R$ 0,00";
+        }
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(numericValue);
+    }
+
+    // Lógica para o Modal de Transferência
+    document.addEventListener('DOMContentLoaded', function() {
+        const transferForm = document.getElementById('transfer-form');
+        const closeBtn = document.getElementById('close-transfer-modal');
+        const cancelBtn = document.getElementById('cancel-transfer-btn');
+        const valorInput = transferForm.querySelector('#id_valor');
+        const contaOrigemSelect = transferForm.querySelector('#id_conta_origem');
+        const saldoOrigemDisplay = transferForm.querySelector('#saldo-origem-display');
+        const transferModal = document.getElementById('transferModal'); // Acessa o modal principal
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', hideTransferModal);
+        }
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', hideTransferModal);
+        }
+
+        if (valorInput) {
+            valorInput.addEventListener('input', () => formatarMoeda(valorInput));
+            valorInput.addEventListener('blur', () => formatarMoedaBlur(valorInput));
+            
+            // Dispara a formatação inicial para o valor preenchido (se houver) ou "0,00"
+            if (valorInput.value) {
+                formatarMoedaBlur(valorInput);
+            } else {
+                valorInput.value = '0,00';
+            }
+        }
+
+        // Função para buscar o saldo da conta via AJAX
+        function fetchAccountBalance(accountId, displayElement) {
+            displayElement.textContent = "Carregando saldo...";
+            displayElement.classList.remove('text-green-600', 'text-red-600');
+            
+            const url = `/get-account-balance/${accountId}/`; 
+
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    const balance = parseFloat(data.saldo);
+                    displayElement.textContent = `Saldo disponível: ${formatCurrencyForDisplay(balance)}`;
+                    if (balance >= 0) {
+                        displayElement.classList.remove('text-red-600');
+                        displayElement.classList.add('text-green-600');
+                    } else {
+                        displayElement.classList.remove('text-green-600');
+                        displayElement.classList.add('text-red-600');
+                    }
+                } else {
+                    displayElement.textContent = "Erro ao carregar saldo.";
+                    displayElement.classList.remove('text-green-600');
+                    displayElement.classList.add('text-red-600');
+                    console.error('Erro ao buscar saldo:', data.message);
+                }
+            })
+            .catch(error => {
+                displayElement.textContent = "Erro ao carregar saldo.";
+                displayElement.classList.remove('text-green-600');
+                displayElement.classList.add('text-red-600');
+                console.error('Fetch error:', error);
+            });
+        }
+
+        if (contaOrigemSelect && saldoOrigemDisplay) {
+            // Dispara fetchAccountBalance se já houver uma conta selecionada ao carregar o modal
+            if (contaOrigemSelect.value) {
+                fetchAccountBalance(contaOrigemSelect.value, saldoOrigemDisplay);
+            } else {
+                saldoOrigemDisplay.textContent = "Selecione uma conta para ver o saldo disponível.";
+                saldoOrigemDisplay.classList.remove('text-green-600', 'text-red-600');
+            }
+
+            contaOrigemSelect.addEventListener('change', function() {
+                const selectedAccountId = this.value;
+                if (selectedAccountId) {
+                    fetchAccountBalance(selectedAccountId, saldoOrigemDisplay);
+                } else {
+                    saldoOrigemDisplay.textContent = "Selecione uma conta para ver o saldo disponível.";
+                    saldoOrigemDisplay.classList.remove('text-green-600', 'text-red-600');
+                }
+            });
+        }
+        
+        if (transferForm) {
+            transferForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const submitBtn = transferForm.querySelector('.submit-btn');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Transferindo...';
+
+                const formData = new FormData(this);
+                // O valor já está no formato X.XXX,XX e será limpo e convertido para Decimal no backend (clean_valor)
+                // Não é necessário converter para decimal aqui no frontend.
+
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    // Se a resposta não for OK, tenta ler os erros do JSON
+                    return response.json().then(errorData => {
+                        throw errorData; // Lança os dados do erro para o catch
+                    });
+                })
+                .then(data => {
+                    if (data.success) {
+                        hideTransferModal(); // Função para esconder o modal
+                        showDynamicMessage(data.message, 'success');
+                        setTimeout(() => window.location.reload(), 1500); // Recarrega a página para atualizar saldos
+                    } else {
+                        // Exibe os erros no formulário do modal
+                        displayFormErrors(transferForm, data.errors);
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-exchange-alt mr-2"></i> Realizar Transferência';
+                    }
+                })
+                .catch(errors => {
+                    console.error('Erro na submissão da transferência:', errors);
+                    if (errors && typeof errors === 'object') {
+                         displayFormErrors(transferForm, errors);
+                    } else {
+                        showDynamicMessage('Erro inesperado na transferência. Tente novamente.', 'error');
+                    }
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-exchange-alt mr-2"></i> Realizar Transferência';
+                });
+            });
+        }
+
+        // Função para esconder o modal (declarada aqui para ser acessível pelo closeBtn/cancelBtn)
+        function hideTransferModal() {
+            if (transferModal) {
+                transferModal.classList.remove('show');
+                setTimeout(() => {
+                    transferModal.classList.add('hidden');
+                    // Opcional: Limpar o conteúdo do modal após esconder, se desejar
+                    // transferModalContent.innerHTML = ''; 
+                }, 300);
+            }
+        }
+    });
+</script>

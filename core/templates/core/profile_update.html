@@ -1,0 +1,2160 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Atualizar Perfil | Finanças Pessoais{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* Variáveis para tema claro (padrão) */
+    :root, .theme-light {
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --secondary: #8b5cf6;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --light: #f8fafc;
+        --dark: #1f2937;
+        --gray: #6b7280;
+
+        --bg-primary: #f8fafc;
+        --bg-secondary: #ffffff;
+        --text-primary: #1f2937;
+        --text-secondary: #6b7280;
+        --border-color: #e5e7eb;
+        --accent-color: #6366f1;
+        --accent-hover: #4f46e5;
+    }
+
+    /* Variáveis para tema escuro */
+    .theme-dark {
+        --bg-primary: #111827;
+        --bg-secondary: #1f2937;
+        --text-primary: #f9fafb;
+        --text-secondary: #d1d5db;
+        --border-color: #374151;
+        --accent-color: #818cf8;
+        --accent-hover: #6366f1;
+    }
+    
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 24px;
+        box-shadow: 
+            0 10px 25px -5px rgba(0, 0, 0, 0.1),
+            0 8px 10px -6px rgba(0, 0, 0, 0.1),
+            inset 0 -2px 6px 0 rgba(255, 255, 255, 0.5),
+            inset 0 2px 6px 0 rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-color: var(--border-color);
+    }
+
+    @supports not (backdrop-filter: blur(16px)) {
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+        }
+    }
+    
+    .theme-dark .glass-panel {
+        background: rgba(31, 41, 55, 0.7);
+    }
+
+    .form-container {
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 24px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .form-input {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 14px;
+        border: 1.5px solid #e2e8f0;
+        background: #f8fafc;
+        padding: 0.875rem 1.25rem;
+        font-size: 1rem;
+        width: 100%;
+        color: var(--dark);
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        background: var(--bg-secondary);
+        border-color: var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .form-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+        outline: none;
+        background: #ffffff;
+        transform: translateY(-2px);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 10px;
+        display: block;
+        font-size: 0.95rem;
+        letter-spacing: -0.025em;
+    }
+
+    .form-error {
+        color: var(--danger);
+        font-size: 0.875rem;
+        margin-top: 8px;
+        padding-left: 6px;
+        font-weight: 500;
+    }
+
+    .submit-btn {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3), 0 2px 4px -1px rgba(99, 102, 241, 0.2);
+        border-radius: 14px;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        padding: 1rem 2rem;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 20px -3px rgba(99, 102, 241, 0.4), 0 4px 6px -2px rgba(99, 102, 241, 0.3);
+    }
+
+    .profile-photo {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 6px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .profile-photo:hover {
+        transform: scale(1.05);
+        box-shadow: 0 16px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .input-file-container {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .input-file-container input[type=file] {
+        position: absolute;
+        top: 0;
+        right: 0;
+        margin: 0;
+        padding: 0;
+        font-size: 20px;
+        cursor: pointer;
+        opacity: 0;
+        filter: alpha(opacity=0);
+        height: 100%;
+        width: 100%;
+    }
+
+    .file-upload-btn {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 0.75rem 1.5rem;
+        border-radius: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1.5px dashed #cbd5e1;
+        text-align: center;
+        display: block;
+        letter-spacing: -0.025em;
+    }
+
+    .file-upload-btn:hover {
+        background: #e2e8f0;
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    .info-label {
+        font-weight: 500;
+        color: var(--gray);
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+        letter-spacing: -0.025em;
+    }
+
+    .info-value {
+        font-weight: 600;
+        color: var(--dark);
+        font-size: 1rem;
+        padding-bottom: 0.75rem;
+        letter-spacing: -0.025em;
+    }
+    
+    .section-title {
+        font-weight: 700;
+        color: var(--dark);
+        font-size: 1.25rem;
+        letter-spacing: -0.025em;
+        position: relative;
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .section-title:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 40px;
+        height: 4px;
+        border-radius: 2px;
+        background: linear-gradient(to right, var(--primary), var(--secondary));
+    }
+    
+    .nav-pill {
+        display: flex;
+        align-items: center;
+        padding: 0.875rem 1.25rem;
+        border-radius: 14px;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s ease;
+        color: var(--dark);
+        font-weight: 500;
+    }
+    
+    .nav-pill:hover {
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--primary);
+        transform: translateX(5px);
+    }
+    
+    .nav-pill.active {
+        background: rgba(99, 102, 241, 0.15);
+        color: var(--primary);
+        font-weight: 600;
+    }
+    
+    .nav-pill i {
+        margin-right: 0.75rem;
+        font-size: 1.1rem;
+        width: 24px;
+        text-align: center;
+    }
+    
+    .divider {
+        height: 1px;
+        background: linear-gradient(to right, transparent, rgba(0,0,0,0.1), transparent);
+        margin: 1.5rem 0;
+    }
+    
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .badge-success {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+    
+    .badge-info {
+        background: rgba(99, 102, 241, 0.15);
+        color: var(--primary);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1.25rem;
+        margin-top: 2rem;
+    }
+    
+    .stat-card {
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 16px;
+        padding: 1.25rem;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        /* Melhorias visuais para o stat-card */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-value {
+        font-size: 1.5rem; /* Diminuído para 1.5rem */
+        font-weight: 800;
+        color: var(--primary);
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.05em;
+    }
+    
+    .stat-label {
+        font-size: 0.8rem; /* Diminuído para 0.8rem */
+        color: var(--gray);
+        font-weight: 500;
+    }
+    
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.4s ease;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .floating-action {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5);
+        cursor: pointer;
+        z-index: 10;
+        transition: all 0.3s ease;
+    }
+    
+    .floating-action:hover {
+        transform: translateY(-5px) rotate(10deg);
+        box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.6);
+    }
+    
+    .photo-edit-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+    
+    .profile-photo-container:hover .photo-edit-overlay {
+        opacity: 1;
+    }
+    
+    .custom-alert {
+        padding: 1rem 1.5rem;
+        border-radius: 14px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        animation: slideIn 0.5s ease;
+    }
+    
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .alert-success {
+        background: rgba(16, 185, 129, 0.15);
+        color: #065f46;
+        border-left: 4px solid #10b981;
+    }
+    
+    .alert-error {
+        background: rgba(239, 68, 68, 0.15);
+        color: #7f1d1d;
+        border-left: 4px solid #ef4444;
+    }
+    
+    .alert-info {
+        background: rgba(99, 102, 241, 0.15);
+        color: #3730a3;
+        border-left: 4px solid #6366f1;
+    }
+
+    /* Layout improvements - Equal height sidebar and main */
+    .equal-height-container {
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 4rem);
+    }
+    
+    @media (min-width: 1024px) {
+        .equal-height-container {
+            flex-direction: row;
+            align-items: stretch;
+        }
+    }
+    
+    .sidebar-flex {
+        flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    @media (min-width: 1024px) {
+        .sidebar-flex {
+            width: 320px;
+        }
+    }
+    
+    .main-content-flex {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .sticky-sidebar {
+        position: sticky;
+        top: 1.5rem;
+        height: fit-content;
+        max-height: calc(100vh - 4rem);
+        overflow-y: auto;
+    }
+    
+    /* Profile image fixes */
+      .profile-image-container {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 6px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        margin: 0 auto;
+    }
+    
+    .profile-image-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .profile-image-fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        font-weight: bold;
+        font-size: 3rem;
+        border: 6px solid rgba(255, 255, 255, 0.9);
+        margin: 0 auto;
+    }
+    #password-modal {
+        transition: opacity 0.3s ease;
+    }
+
+    #password-modal:not(.hidden) {
+        display: flex;
+        animation: fadeIn 0.3s ease;
+    }
+
+    /* Ajustar cores específicas para tema escuro */
+    .theme-dark .bg-blue-50 { 
+        background-color: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.2);
+    }
+    
+    .theme-dark .bg-purple-50 { 
+        background-color: rgba(139, 92, 246, 0.1);
+        border-color: rgba(139, 92, 246, 0.2);
+    }
+    
+    .theme-dark .bg-red-50 { 
+        background-color: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .theme-dark .text-blue-800 { color: #93c5fd; }
+    .theme-dark .text-purple-800 { color: #c4b5fd; }
+    .theme-dark .text-red-800 { color: #fca5a5; }
+    .theme-dark .text-gray-600 { color: #9ca3af; }
+
+    .theme-dark .border-blue-100 { border-color: rgba(59, 130, 246, 0.2); }
+    .theme-dark .border-purple-100 { border-color: rgba(139, 92, 246, 0.2); }
+    .theme-dark .border-red-100 { border-color: rgba(239, 68, 68, 0.2); }
+
+    /* Estilo para as conquistas */
+    .achievement-card {
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 16px;
+        padding: 1.25rem;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    .achievement-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .achievement-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 0.5rem;
+    }
+    .achievement-description {
+        font-size: 0.85rem;
+        color: var(--gray);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen w-full py-4">
+    <div class="w-full max-w-screen-2xl mx-auto px-4">
+        <div class="glass-panel p-6 mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-xl md:text-4xl font-bold text-gray-900 mb-2">
+                        <i class="fas fa-user-cog mr-3 text-indigo-600"></i>
+                        Configurações do Perfil
+                    </h1>
+                    <p class="text-lg text-gray-600 font-semibold">
+                        Gerencie suas informações pessoais e preferências
+                    </p>
+                </div>
+                
+                <div class="flex items-center">
+                    <span class="text-sm text-gray-500 mr-3">Status da conta:</span>
+                    <span class="badge badge-success">
+                        <i class="fas fa-check-circle mr-1"></i> Verificada
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="equal-height-container gap-6">
+            <!-- Sidebar Navigation - Fixed width but equal height -->
+           <div class="sidebar-flex">
+                <div class="glass-panel p-6 sticky-sidebar">
+                    <div class="text-center mb-6">
+                        <div class="relative profile-photo-container inline-block mx-auto">
+                            {% if user.profile.foto_perfil and user.profile.foto_perfil.name != 'default.jpg' %}
+                                <div class="profile-image-container">
+                                    <img src="{{ user.profile.foto_perfil.url }}" alt="Foto de Perfil" id="profile-photo-preview">
+                                </div>
+                            {% else %}
+                                <div class="profile-image-fallback">
+                                    {{ user.first_name|first|default:user.username|first|upper }}
+                                </div>
+                            {% endif %}
+                            <div class="photo-edit-overlay">
+                                <i class="fas fa-camera text-white text-2xl"></i>
+                            </div>
+                        </div>
+                        <h2 class="text-xl font-bold mt-4">{{ user.get_full_name|default:user.username }}</h2>
+                        <p class="text-gray-600">{{ user.email }}</p>
+                    </div>
+                    
+                    <nav class="space-y-2">
+                        <a href="#personal-info" class="nav-pill active" data-tab="personal-info">
+                            <i class="fas fa-user"></i> Informações Pessoais
+                        </a>
+                        <a href="#image" class="nav-pill" data-tab="image">
+                            <i class="fas fa-camera"></i> Alterar Imagem
+                        </a>
+                        <a href="#security" class="nav-pill" data-tab="security">
+                            <i class="fas fa-lock"></i> Segurança
+                        </a>
+                        <a href="#preferences" class="nav-pill" data-tab="preferences">
+                            <i class="fas fa-cog"></i> Preferências
+                        </a>
+                        <a href="#stats" class="nav-pill" data-tab="stats">
+                            <i class="fas fa-chart-line"></i> Estatísticas
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- Main Content - Equal height with sidebar -->
+            <div class="main-content-flex">
+                <div class="glass-panel p-6 md:p-8 h-full">
+                    
+                            <!-- Personal Info Tab -->
+                    <div id="personal-info" class="tab-content active">
+                        <h3 class="section-title">Informações Pessoais</h3>
+
+                        <form id="profile-info-form" method="post" action="{% url 'core:update_profile_info' %}">
+                            {% csrf_token %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="input-group">
+                                    <label for="id_first_name" class="form-label">Nome</label>
+                                    <input type="text" name="first_name" id="id_first_name"
+                                        class="form-input" value="{{ u_form.first_name.value|default:'' }}"
+                                        placeholder="Seu nome">
+                                    {% if u_form.first_name.errors %}
+                                        <p class="form-error">{{ u_form.first_name.errors|striptags }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="input-group">
+                                    <label for="id_last_name" class="form-label">Sobrenome</label>
+                                    <input type="text" name="last_name" id="id_last_name"
+                                        class="form-input" value="{{ u_form.last_name.value|default:'' }}"
+                                        placeholder="Seu sobrenome">
+                                    {% if u_form.last_name.errors %}
+                                        <p class="form-error">{{ u_form.last_name.errors|striptags }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="input-group md:col-span-2">
+                                    <label for="id_email" class="form-label">Email</label>
+                                    <input type="email" name="email" id="id_email"
+                                        class="form-input" value="{{ u_form.email.value|default:'' }}"
+                                        placeholder="Seu email">
+                                    {% if u_form.email.errors %}
+                                        <p class="form-error">{{ u_form.email.errors|striptags }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Botão individual para salvar informações -->
+                            <div class="mt-6">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                                    <i class="fas fa-save mr-2"></i> Salvar Informações
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <!-- Informação de última atualização para dados pessoais -->
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <div class="text-sm text-gray-500">
+                                <i class="fas fa-info-circle mr-1"></i> 
+                                Informações pessoais atualizadas em: {{ user.profile.data_atualizacao|date:"d/m/Y H:i"|default:"Data não disponível" }}
+                            </div>
+                        </div>
+                    </div>
+        
+                    <!-- Image Tab -->
+                    <div id="image" class="tab-content">
+                        <h3 class="section-title">Alterar Foto de Perfil</h3>
+                        
+                        <div class="flex flex-col items-center">
+                            <!-- Preview da Imagem - Topo -->
+                            <div class="flex flex-col items-center mb-6 w-full">
+                                <label class="form-label mb-3 text-center">
+                                    <i class="fas fa-eye mr-2"></i> Visualização da Imagem
+                                </label>
+                                <div class="relative profile-photo-container mb-4">
+                                    {% if user.profile.foto_perfil and user.profile.foto_perfil.name != 'default.jpg' %}
+                                        <div class="profile-image-container">
+                                            <img src="{{ user.profile.foto_perfil.url }}" alt="Preview da Imagem" id="image-preview">
+                                        </div>
+                                    {% else %}
+                                        <div class="profile-image-fallback" id="image-preview-fallback">
+                                            {{ user.first_name|first|default:user.username|first|upper }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Informação de rotação -->
+                                <div id="rotation-info" class="text-sm text-gray-600 mb-4 hidden">
+                                    Rotação: 0°
+                                </div>
+                            </div>
+                            
+                            <!-- Controles de Edição - Centralizados -->
+                            <div class="flex gap-3 justify-center mb-6 w-full">
+                                <button type="button" id="rotate-left-btn" class="p-3 bg-gray-100 rounded-full hover:bg-gray-200 transition transform hover:scale-110 shadow-sm" title="Girar para esquerda">
+                                    <i class="fas fa-undo text-gray-700"></i>
+                                </button>
+                                <button type="button" id="rotate-right-btn" class="p-3 bg-gray-100 rounded-full hover:bg-gray-200 transition transform hover:scale-110 shadow-sm" title="Girar para direita">
+                                    <i class="fas fa-redo text-gray-700"></i>
+                                </button>
+                                <button type="button" id="reset-image-btn" class="p-3 bg-gray-100 rounded-full hover:bg-gray-200 transition transform hover:scale-110 shadow-sm" title="Redefinir imagem">
+                                    <i class="fas fa-sync-alt text-gray-700"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Upload da Imagem - Centralizado -->
+                            <div class="flex flex-col items-center w-full max-w-md mb-6">
+                                <label class="form-label mb-3 text-center">
+                                    <i class="fas fa-camera mr-2"></i> Selecionar Nova Foto
+                                </label>
+                                <div class="input-file-container mb-2 mx-auto">
+                                    <input type="file" name="foto_perfil" id="id_foto_perfil" accept="image/*" class="file-input">
+                                    <div class="file-upload-btn">
+                                        <i class="fas fa-upload mr-2"></i>
+                                        <span>Selecionar Arquivo</span>
+                                    </div>
+                                </div>
+                                {% if p_form.foto_perfil.errors %}
+                                <p class="form-error text-center">{{ p_form.foto_perfil.errors|striptags }}</p>
+                                {% endif %}
+                                <div id="file-name" class="text-sm text-gray-600 mt-2 text-center"></div>
+                                <p class="text-xs text-gray-500 mt-1 text-center">Formatos suportados: JPG, PNG, GIF, WEBP. Tamanho máximo: 2MB.</p>
+                            </div>
+                            
+                            <!-- Botão de salvar - Centralizado -->
+                            <div class="flex justify-center mb-6 w-full">
+                                <button type="button" id="save-photo-btn" class="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition flex items-center shadow-md hover:shadow-lg">
+                                    <i class="fas fa-save mr-2"></i> Salvar Foto
+                                </button>
+                            </div>
+                            
+                            <!-- Informação de última atualização -->
+                            <div class="mt-4 pt-4 border-t border-gray-200 w-full max-w-md">
+                                <div class="text-sm text-gray-500 text-center">
+                                    <i class="fas fa-info-circle mr-1"></i> 
+                                    {% if user.profile.foto_perfil and user.profile.foto_perfil.name != 'default.jpg' %}
+                                        Foto atualizada em: {{ user.profile.data_atualizacao|date:"d/m/Y H:i"|default:"Data não disponível" }}
+                                    {% else %}
+                                        Nenhuma foto personalizada enviada ainda
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Security Tab -->
+                    <div id="security" class="tab-content">
+                        <h3 class="section-title">Configurações de Segurança</h3>
+                        
+                        <div class="space-y-5">
+                            <!-- Alteração de Senha - Agora expandível -->
+                            <div class="bg-blue-50 p-5 rounded-xl border border-blue-100">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-lg text-blue-800 mb-3 flex items-center">
+                                            <i class="fas fa-key mr-2"></i> Alteração de Senha
+                                        </h4>
+                                        <p class="text-blue-600 mb-4">Para sua segurança, recomendamos alterar sua senha regularmente.</p>
+                                        
+                                        <!-- Informação da última alteração de senha -->
+                                        <div class="text-sm text-gray-700 mb-2 mt-8">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            Senha alterada pela última vez em: 
+                                            {% if user.profile.password_updated_at %}
+                                                {{ user.profile.password_updated_at|date:"d/m/Y H:i" }}
+                                            {% else %}
+                                                Nunca
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <button type="button" id="toggle-password-form" class="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition">
+                                        <i class="fas fa-lock mr-2"></i> 
+                                        <span id="toggle-password-text">Alterar Senha</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Formulário de alteração de senha (inicialmente oculto) -->
+                               <form id="password-change-form" method="post" action="{% url 'core:password_change' %}" class="mt-4 hidden">
+                                    {% csrf_token %}
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label for="id_old_password" class="block text-sm font-medium text-gray-700 mb-1">
+                                                Senha Atual
+                                            </label>
+                                            <input type="password" name="old_password" id="id_old_password" 
+                                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" required>
+                                        </div>
+                                        
+                                        <div>
+                                            <label for="id_new_password1" class="block text-sm font-medium text-gray-700 mb-1">
+                                                Nova Senha
+                                            </label>
+                                            <input type="password" name="new_password1" id="id_new_password1" 
+                                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" required>
+                                        </div>
+                                        
+                                        <div>
+                                            <label for="id_new_password2" class="block text-sm font-medium text-gray-700 mb-1">
+                                                Confirmar Nova Senha
+                                            </label>
+                                            <input type="password" name="new_password2" id="id_new_password2" 
+                                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600" required>
+                                        </div>
+                                        
+                                        <div id="password-errors" class="text-red-600 text-sm hidden"></div>
+                                        
+                                        <div class="flex justify-end space-x-3 pt-4">
+                                            <button type="button" id="cancel-password-change" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                                                Cancelar
+                                            </button>
+                                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                                Alterar Senha
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <div class="bg-red-50 p-5 rounded-xl border border-red-100">
+                                <h4 class="font-semibold text-lg text-red-800 mb-3 flex items-center">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i> Zona de Perigo
+                                </h4>
+                                <p class="text-red-600 mb-4">Essas ações são irreversíveis. Por favor, proceda com cautela.</p>
+                                
+                                <div class="space-y-3">
+                                    {% if user.profile.foto_perfil and user.profile.foto_perfil.name != 'default.jpg' %}
+                                    <a href="{% url 'core:remove_profile_photo' %}" class="flex items-center text-red-700 font-medium hover:text-red-900" 
+                                    onclick="return confirm('Tem certeza que deseja remover sua foto de perfil?');">
+                                        <i class="fas fa-trash mr-2"></i> Remover Foto de Perfil
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'core:delete_account' %}" 
+                                    class="flex items-center text-red-700 font-medium hover:text-red-900">
+                                        <i class="fas fa-user-times mr-2"></i> Excluir Conta Permanentemente
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                        
+                    <!-- Preferences Tab -->
+                    <div id="preferences" class="tab-content">
+                        <h3 class="section-title">Preferências do Usuário</h3>
+                        
+                        <p class="text-gray-600 mb-6">Personalize sua experiência de acordo com suas preferências.</p>
+                        
+                        <div class="bg-purple-50 p-6 rounded-xl border border-purple-100">
+                            <h4 class="font-semibold text-lg text-purple-800 mb-2 flex items-center">
+                                <i class="fas fa-palette mr-2"></i> Personalização de Tema
+                            </h4>
+                            <p class="text-purple-600 mb-4">Escolha entre temas claros e escuros para uma experiência visual personalizada.</p>
+                            
+                            <div class="flex space-x-4 mb-4">
+                                <div class="flex items-center">
+                                    <input type="radio" id="theme-light" name="theme" value="light" class="mr-2 theme-radio" 
+                                        {% if user.profile.theme == 'light' %}checked{% endif %}>
+                                    <label for="theme-light" class="cursor-pointer">Modo Claro</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="radio" id="theme-dark" name="theme" value="dark" class="mr-2 theme-radio"
+                                        {% if user.profile.theme == 'dark' %}checked{% endif %}>
+                                    <label for="theme-dark" class="cursor-pointer">Modo Escuro</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="radio" id="theme-auto" name="theme" value="auto" class="mr-2 theme-radio"
+                                        {% if user.profile.theme == 'auto' %}checked{% endif %}>
+                                    <label for="theme-auto" class="cursor-pointer">Automático</label>
+                                </div>
+                            </div>
+                            
+                            <button type="button" id="save-theme" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition">
+                                <i class="fas fa-save mr-2"></i> Salvar Preferência de Tema
+                            </button>
+                            <div id="theme-message" class="mt-2 text-sm hidden"></div>
+                        </div>
+                    </div>
+
+                    <!-- Statistics Tab -->
+                    <div id="stats" class="tab-content">
+                        <h3 class="section-title">Suas Estatísticas</h3>
+                        
+                        <div class="stats-grid">
+                            <!-- Estatísticas de Atividade -->
+                            <div class="stat-card">
+                                <div id="total-logins" class="stat-value">0</div>
+                                <div class="stat-label">Total de Acessos</div>
+                            </div>
+                            <div class="stat-card">
+                                <div id="current-streak" class="stat-value">0 dias</div>
+                                <div class="stat-label">Sequência Atual</div>
+                            </div>
+                            <div class="stat-card">
+                                <div id="last-login" class="stat-value">--/--/----</div>
+                                <div class="stat-label">Último Acesso</div>
+                            </div>
+                            <div class="stat-card">
+                                <div id="account-age" class="stat-value">0 dias</div>
+                                <div class="stat-label">Idade da Conta</div>
+                            </div>
+                            
+                            <!-- Estatísticas de Uso -->
+                            <div class="stat-card">
+                                <div id="profile-completion" class="stat-value">0%</div>
+                                <div class="stat-label">Perfil Completo</div>
+                            </div>
+                            <div class="stat-card">
+                                <div id="password-strength" class="stat-value">--</div>
+                                <div class="stat-label">Força da Senha</div>
+                            </div>
+                            <div class="stat-card">
+                                <div id="last-password-change" class="stat-value">Nunca</div>
+                                <div class="stat-label">Última Alteração de Senha</div>
+                            </div>
+                            <div class="stat-card">
+                                <div id="weekly-logins" class="stat-value">0</div>
+                                <div class="stat-label">Acessos esta semana</div>
+                            </div>
+                        </div>
+                        
+ <!-- Gráfico de Atividade Semanal -->
+    <div class="mt-8 bg-blue-50 p-6 rounded-xl border border-blue-100">
+        <h4 class="font-semibold text-lg text-blue-800 mb-4 flex items-center">
+            <i class="fas fa-chart-line mr-2"></i> Sua Atividade Semanal
+        </h4>
+        <div class="bg-white p-4 rounded-lg">
+            <div class="flex items-end justify-between h-40 mb-4" id="weekly-activity-chart">
+                <!-- O gráfico será gerado via JavaScript -->
+            </div>
+            <p class="text-sm text-gray-600 text-center">Acessos nos últimos 7 dias</p>
+        </div>
+    </div>
+    
+    <!-- Histórico de Atividades Recentes -->
+    <div class="mt-6 bg-gray-50 p-6 rounded-xl border border-gray-200">
+        <h4 class="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-history mr-2"></i> Atividades Recentes
+        </h4>
+        <div class="space-y-3" id="recent-activities">
+            <!-- As atividades serão carregadas via JavaScript -->
+        </div>
+    </div>
+                        
+                        <!-- Histórico de Atividades Recentes -->
+                        <div class="mt-6 bg-gray-50 p-6 rounded-xl border border-gray-200">
+                            <h4 class="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-history mr-2"></i> Atividades Recentes
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-key text-green-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium">Senha alterada</p>
+                                            <p class="text-xs text-gray-500">Alteração de segurança</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs text-gray-500" id="recent-password-change">
+                                            {% if user.profile.password_updated_at %}
+                                                {{ user.profile.password_updated_at|date:"d/m/Y H:i" }}
+                                            {% else %}
+                                                Nunca
+                                            {% endif %}
+                                    </span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-user-edit text-blue-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium">Perfil atualizado</p>
+                                            <p class="text-xs text-gray-500">Informações pessoais</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs text-gray-500" id="recent-profile-update">
+                                        {{ user.profile.data_atualizacao|date:"d/m/Y H:i"|default:"Data não disponível" }}
+                                    </span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-camera text-purple-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium">Foto alterada</p>
+                                            <p class="text-xs text-gray-500">Foto de perfil</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs text-gray-500" id="recent-photo-change">
+                                        {{ user.profile.data_atualizacao|date:"d/m/Y H:i"|default:"Data não disponível" }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+ <!-- Conquistas -->
+    <div class="mt-6 bg-green-50 p-6 rounded-xl border border-green-100">
+        <h4 class="font-semibold text-lg text-green-800 mb-4 flex items-center">
+            <i class="fas fa-trophy mr-2"></i> Suas Conquistas
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="achievements-container">
+            <!-- Conquistas serão carregadas via JavaScript -->
+        </div>
+    </div>
+                    </div>
+
+                
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<div class="floating-action" id="help-button">
+    <i class="fas fa-question"></i>
+</div>
+
+<script>
+    // Função global para mostrar alertas
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `fixed top-4 right-4 p-4 rounded-md shadow-md z-50 ${
+            type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`;
+        alertDiv.textContent = message;
+        
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab navigation
+        document.querySelectorAll('.nav-pill').forEach(pill => {
+            pill.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Atualizar a pílula ativa
+                document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Mostrar a aba correspondente
+                const tabId = this.getAttribute('data-tab');
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+
+                // Atualizar o URL sem recarregar a página
+                history.pushState(null, '', `#${tabId}`);
+            });
+        });
+
+        // Carregar aba com base na URL ao carregar a página
+        const hash = window.location.hash.substring(1); // Remover o '#'
+        if (hash) {
+            const targetPill = document.querySelector(`.nav-pill[data-tab="${hash}"]`);
+            if (targetPill) {
+                targetPill.click(); // Simular um clique para ativar a aba
+            }
+        }
+        
+        // Preview da imagem selecionada
+        const fotoPerfilInput = document.getElementById('id_foto_perfil');
+        if (fotoPerfilInput) {
+            fotoPerfilInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // Validar tipo de arquivo
+                    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                    if (!validTypes.includes(file.type)) {
+                        showAlert('Por favor, selecione apenas imagens (JPG, PNG, GIF, WEBP).', 'error');
+                        this.value = '';
+                        return;
+                    }
+                    
+                    // Validar tamanho (2MB)
+                    if (file.size > 2 * 1024 * 1024) {
+                        showAlert('A imagem deve ter menos de 2MB.', 'error');
+                        this.value = '';
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const previewImg = document.getElementById('profile-photo-preview');
+                        if (previewImg) {
+                            previewImg.src = e.target.result;
+                        } else {
+                            // Se não existe preview, criar um (ou atualizar o fallback)
+                            const fallback = document.querySelector('.profile-image-fallback');
+                            if (fallback) {
+                                fallback.innerHTML = `<img src="${e.target.result}" alt="Preview" class="w-full h-full object-cover rounded-full">`;
+                            }
+                        }
+                        document.getElementById('file-name').textContent = file.name;
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Click na foto de perfil para acionar o input de arquivo
+        const profilePhotoContainer = document.querySelector('.profile-photo-container');
+        if (profilePhotoContainer) {
+            profilePhotoContainer.addEventListener('click', function() {
+                document.getElementById('id_foto_perfil').click();
+            });
+        }
+        
+        // Funcionalidade do botão de ajuda
+        document.getElementById('help-button').addEventListener('click', function() {
+            showAlert('Precisa de ajuda? Entre em contato com nosso suporte pelo email: suporte@financas.com', 'info');
+        });
+
+        // Ajuste de altura igual para sidebar e conteúdo principal
+        function adjustHeights() {
+            const sidebar = document.querySelector('.sticky-sidebar');
+            const mainContent = document.querySelector('.main-content-flex > .glass-panel'); // Seleciona diretamente o painel principal
+            
+            if (sidebar && mainContent && window.innerWidth >= 1024) {
+                // Resetar min-heights para recalcular
+                sidebar.style.minHeight = 'auto';
+                mainContent.style.minHeight = 'auto';
+
+                const sidebarHeight = sidebar.scrollHeight;
+                const mainHeight = mainContent.scrollHeight;
+                
+                if (sidebarHeight > mainHeight) {
+                    mainContent.style.minHeight = `${sidebarHeight}px`;
+                } else if (mainHeight > sidebarHeight) {
+                    sidebar.style.minHeight = `${mainHeight}px`;
+                }
+            } else if (sidebar && mainContent && window.innerWidth < 1024) {
+                // Remover min-heights em telas menores para evitar comportamento indesejado
+                sidebar.style.minHeight = 'auto';
+                mainContent.style.minHeight = 'auto';
+            }
+        }
+
+        // Rodar ao carregar e redimensionar
+        window.addEventListener('load', adjustHeights);
+        window.addEventListener('resize', adjustHeights);
+
+        // Controle do modal de alteração de senha
+        const openModalBtn = document.getElementById('open-password-modal');
+        const closeModalBtn = document.getElementById('close-password-modal');
+        const cancelBtn = document.getElementById('cancel-password-change');
+        const modal = document.getElementById('password-modal');
+        const passwordChangeForm = document.getElementById('password-change-form');
+        const passwordErrorDiv = document.getElementById('password-errors');
+        
+        if (openModalBtn && modal && passwordChangeForm) {
+            // Abrir modal
+            openModalBtn.addEventListener('click', function() {
+                modal.classList.remove('hidden');
+            });
+            
+            // Fechar modal
+            function closeModal() {
+                modal.classList.add('hidden');
+                passwordChangeForm.reset();
+                passwordErrorDiv.classList.add('hidden');
+                passwordErrorDiv.innerHTML = '';
+            }
+            
+            closeModalBtn.addEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+            
+            // Fechar modal ao clicar fora dele
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+            
+            // Enviar formulário de alteração de senha via AJAX
+            passwordChangeForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(passwordChangeForm);
+                
+                fetch(passwordChangeForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        closeModal();
+                        showAlert('Senha alterada com sucesso!', 'success');
+                    } else {
+                        passwordErrorDiv.classList.remove('hidden');
+                        let errorHtml = '';
+                        
+                        if (data.errors) {
+                            for (const field in data.errors) {
+                                data.errors[field].forEach(error => {
+                                    errorHtml += `<p>${error}</p>`;
+                                });
+                            }
+                        } else if (data.message) {
+                            errorHtml = `<p>${data.message}</p>`;
+                        }
+                        
+                        passwordErrorDiv.innerHTML = errorHtml;
+                    }
+                })
+                .catch(error => {
+                    passwordErrorDiv.classList.remove('hidden');
+                    passwordErrorDiv.innerHTML = '<p>Ocorreu um erro. Tente novamente.</p>';
+                });
+            });
+        }
+        
+        // Sistema de tema
+        const saveThemeBtn = document.getElementById('save-theme');
+        const themeRadios = document.querySelectorAll('.theme-radio');
+        const themeMessage = document.getElementById('theme-message');
+        
+        // Aplicar tema ao carregar a página
+        applyTheme('{{ user.profile.theme }}'); // Supondo que 'user.profile.theme' vem do backend
+        
+        // Salvar preferência de tema
+        if (saveThemeBtn) {
+            saveThemeBtn.addEventListener('click', function() {
+                const selectedTheme = document.querySelector('input[name="theme"]:checked').value;
+                
+                const formData = new FormData();
+                formData.append('theme', selectedTheme);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                
+               fetch('{% url "core:profile_update" %}', { // Certifique-se que esta URL é a correta para salvar o tema
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showThemeMessage('Preferência de tema salva com sucesso!', 'success');
+                        applyTheme(selectedTheme);
+                        
+                        // Recarregar após 1.5 segundos para aplicar o tema globalmente
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showThemeMessage('Erro ao salvar preferência. Tente novamente.', 'error');
+                    }
+                })
+                .catch(error => {
+                    showThemeMessage('Erro ao salvar preferência. Tente novamente.', 'error');
+                });
+            });
+        }
+        
+        // Aplicar tema visualmente (para preview)
+        themeRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                applyTheme(this.value);
+            });
+        });
+        
+        // Função para aplicar tema visualmente
+        function applyTheme(theme) {
+            const html = document.documentElement;
+            
+            // Remover classes existentes
+            html.classList.remove('theme-light', 'theme-dark', 'theme-auto');
+            
+            // Adicionar classe do tema selecionado
+            html.classList.add(`theme-${theme}`);
+            
+            // Se for automático, verificar preferência do sistema
+            if (theme === 'auto') {
+                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    html.classList.add('theme-dark');
+                } else {
+                    html.classList.add('theme-light');
+                }
+            }
+        }
+        
+        // Função para mostrar mensagens de tema
+        function showThemeMessage(message, type) {
+            themeMessage.textContent = message;
+            themeMessage.classList.remove('hidden', 'text-green-600', 'text-red-600');
+            
+            if (type === 'success') {
+                themeMessage.classList.add('text-green-600');
+            } else {
+                themeMessage.classList.add('text-red-600');
+            }
+            
+            themeMessage.classList.remove('hidden');
+            
+            // Esconder mensagem após 3 segundos
+            setTimeout(() => {
+                themeMessage.classList.add('hidden');
+            }, 3000);
+        }
+        
+        // Observar mudanças no tema do sistema (para modo automático)
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            const currentTheme = document.querySelector('input[name="theme"]:checked').value;
+            if (currentTheme === 'auto') {
+                applyTheme('auto');
+            }
+        });
+
+        // No evento de submit do formulário de informações pessoais
+        const profileInfoForm = document.getElementById('profile-info-form');
+        if (profileInfoForm) {
+            profileInfoForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Informações salvas com sucesso!', 'success');
+                        
+                        // Atualizar a informação de última atualização se disponível
+                        if (data.updated_at) {
+                            const updateElements = document.querySelectorAll('#personal-info .text-sm.text-gray-500');
+                            if (updateElements.length > 0) {
+                                updateElements[0].innerHTML = `<i class="fas fa-info-circle mr-1"></i> Informações pessoais atualizadas em: ${data.updated_at}`;
+                            }
+                        }
+                    } else {
+                        showAlert('Erro ao salvar informações. Verifique os campos.', 'error');
+                    }
+                })
+                .catch(error => {
+                    showAlert('Erro ao salvar informações. Tente novamente.', 'error');
+                    console.error('Erro na requisição AJAX:', error);
+                });
+            });
+        }
+
+        // Submissão da foto de perfil
+        const savePhotoBtn = document.getElementById('save-photo-btn');
+        if (savePhotoBtn) {
+            savePhotoBtn.addEventListener('click', function() {
+                const fileInput = document.getElementById('id_foto_perfil');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    showAlert('Selecione uma imagem primeiro.', 'error');
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('foto_perfil', file);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                
+                fetch('{% url "core:update_profile_photo" %}', { // Certifique-se que esta URL é a correta para salvar a foto
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Foto de perfil salva com sucesso!', 'success');
+                        // Recarregar a página para ver a nova foto
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showAlert('Erro ao salvar a foto. Verifique o arquivo.', 'error');
+                    }
+                })
+                .catch(error => {
+                    showAlert('Erro ao salvar a foto. Tente novamente.', 'error');
+                    console.error('Erro na requisição AJAX:', error);
+                });
+            });
+        }
+
+        // Lógica para estatísticas de acesso (utilizando localStorage)
+        const accessCountElement = document.getElementById('access-count');
+        const lastAccessElement = document.getElementById('last-access');
+        const timeSinceFirstAccessElement = document.getElementById('time-since-first-access');
+
+        if (accessCountElement && lastAccessElement && timeSinceFirstAccessElement) {
+            let visitCount = parseInt(localStorage.getItem('visitCount')) || 0;
+            let firstVisit = parseInt(localStorage.getItem('firstVisit')) || Date.now();
+            let lastVisit = Date.now();
+
+            // Incrementa a contagem de acessos
+            visitCount++;
+
+            // Salva os dados atualizados no localStorage
+            localStorage.setItem('visitCount', visitCount);
+            localStorage.setItem('firstVisit', firstVisit);
+            localStorage.setItem('lastVisit', lastVisit);
+
+            // Formata o último acesso
+            const lastAccessDate = new Date(lastVisit);
+            const formattedLastAccess = lastAccessDate.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Calcula o tempo desde o primeiro acesso
+            const diffTime = Math.abs(lastVisit - firstVisit);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            // Atualiza os elementos no DOM
+            accessCountElement.textContent = visitCount;
+            lastAccessElement.textContent = formattedLastAccess;
+            timeSinceFirstAccessElement.textContent = `${diffDays} dias`;
+        }
+
+        // Lógica para dados de estatísticas fictícias
+        const transactionsMonthElement = document.getElementById('transactions-month');
+        const currentBalanceElement = document.getElementById('current-balance');
+        const monthlyGoalElement = document.getElementById('monthly-goal');
+        const consecutiveDaysElement = document.getElementById('consecutive-days');
+
+        if (transactionsMonthElement && currentBalanceElement && monthlyGoalElement && consecutiveDaysElement) {
+            // Valores fictícios para demonstração
+            const transactionsMonth = 42;
+            const currentBalance = 3245.50;
+            const monthlyGoal = 87;
+            const consecutiveDays = 18;
+
+            transactionsMonthElement.textContent = transactionsMonth;
+            currentBalanceElement.textContent = `R$ ${currentBalance.toFixed(2).replace('.', ',')}`;
+            monthlyGoalElement.textContent = `${monthlyGoal}%`;
+            consecutiveDaysElement.textContent = consecutiveDays;
+        }
+    });
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos do DOM
+    const fileInput = document.getElementById('id_foto_perfil');
+    let imagePreview = document.getElementById('image-preview');
+    const imagePreviewFallback = document.getElementById('image-preview-fallback');
+    const fileName = document.getElementById('file-name');
+    const rotateLeftBtn = document.getElementById('rotate-left-btn');
+    const rotateRightBtn = document.getElementById('rotate-right-btn');
+    const resetImageBtn = document.getElementById('reset-image-btn');
+    const savePhotoBtn = document.getElementById('save-photo-btn');
+    const rotationInfo = document.getElementById('rotation-info');
+    
+    // Variáveis para controle da imagem
+    let currentRotation = 0;
+    let originalImageData = null;
+    let currentImageFile = null;
+    
+    // Inicialmente esconder os botões de rotação
+    if (rotateLeftBtn) rotateLeftBtn.style.display = 'none';
+    if (rotateRightBtn) rotateRightBtn.style.display = 'none';
+    if (resetImageBtn) resetImageBtn.style.display = 'none';
+    
+    // Quando um arquivo é selecionado
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Validar tipo de arquivo
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                showAlert('Por favor, selecione apenas imagens (JPG, PNG, GIF, WEBP).', 'error');
+                this.value = '';
+                return;
+            }
+            
+            // Validar tamanho (2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                showAlert('A imagem deve ter menos de 2MB.', 'error');
+                this.value = '';
+                return;
+            }
+            
+            currentImageFile = file;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Salvar dados originais para reset
+                originalImageData = e.target.result;
+                currentRotation = 0;
+                
+                // Atualizar informação de rotação
+                if (rotationInfo) {
+                    rotationInfo.textContent = `Rotação: ${currentRotation}°`;
+                    rotationInfo.classList.remove('hidden');
+                }
+                
+                // Criar preview da imagem
+                if (imagePreview) {
+                    imagePreview.src = e.target.result;
+                } else if (imagePreviewFallback) {
+                    // Substituir fallback por imagem real
+                    imagePreviewFallback.innerHTML = `<img src="${e.target.result}" alt="Preview" class="w-full h-full object-cover rounded-full" id="dynamic-image-preview">`;
+                    // Atualizar referência
+                    imagePreview = document.getElementById('dynamic-image-preview');
+                }
+                
+                fileName.textContent = file.name;
+                fileName.classList.add('font-medium', 'text-purple-600');
+                
+                // Mostrar controles de rotação
+                if (rotateLeftBtn) {
+                    rotateLeftBtn.style.display = 'block';
+                    rotateLeftBtn.classList.add('transform', 'hover:scale-110');
+                }
+                if (rotateRightBtn) {
+                    rotateRightBtn.style.display = 'block';
+                    rotateRightBtn.classList.add('transform', 'hover:scale-110');
+                }
+                if (resetImageBtn) {
+                    resetImageBtn.style.display = 'block';
+                    resetImageBtn.classList.add('transform', 'hover:scale-110');
+                }
+                
+                // Habilitar botão de salvar
+                if (savePhotoBtn) {
+                    savePhotoBtn.disabled = false;
+                    savePhotoBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Rotacionar imagem para esquerda
+    if (rotateLeftBtn) {
+        rotateLeftBtn.addEventListener('click', function() {
+            rotateImage(-90);
+        });
+    }
+    
+    // Rotacionar imagem para direita
+    if (rotateRightBtn) {
+        rotateRightBtn.addEventListener('click', function() {
+            rotateImage(90);
+        });
+    }
+    
+    // Resetar imagem para estado original
+    if (resetImageBtn) {
+        resetImageBtn.addEventListener('click', function() {
+            if (originalImageData && imagePreview) {
+                imagePreview.src = originalImageData;
+                currentRotation = 0;
+                updateImageTransform();
+                
+                // Atualizar informação de rotação
+                if (rotationInfo) {
+                    rotationInfo.textContent = `Rotação: ${currentRotation}°`;
+                }
+                
+                showAlert('Imagem redefinida para o estado original.', 'info');
+            }
+        });
+    }
+    
+    // Função para rotacionar a imagem
+    function rotateImage(degrees) {
+        if (!imagePreview) return;
+        
+        currentRotation += degrees;
+        updateImageTransform();
+        
+        // Atualizar informação de rotação
+        if (rotationInfo) {
+            rotationInfo.textContent = `Rotação: ${currentRotation}°`;
+        }
+    }
+    
+    // Aplicar transformação de rotação na imagem
+    function updateImageTransform() {
+        if (imagePreview) {
+            imagePreview.style.transform = `rotate(${currentRotation}deg)`;
+            imagePreview.style.transition = 'transform 0.3s ease';
+        }
+    }
+    
+    // Processar e enviar a imagem quando o botão de salvar for clicado
+    if (savePhotoBtn) {
+        // Inicialmente desabilitar o botão se não houver imagem
+        savePhotoBtn.disabled = true;
+        savePhotoBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        
+        savePhotoBtn.addEventListener('click', async function() {
+            if (!currentImageFile) {
+                showAlert('Selecione uma imagem primeiro.', 'error');
+                return;
+            }
+            
+            try {
+                // Mostrar indicador de carregamento
+                savePhotoBtn.disabled = true;
+                const originalText = savePhotoBtn.innerHTML;
+                savePhotoBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processando...';
+                
+                // Processar a imagem com a rotação aplicada
+                const processedImage = await processImageWithRotation(currentImageFile, currentRotation);
+                
+                // Criar FormData e enviar
+                const formData = new FormData();
+                formData.append('foto_perfil', processedImage, currentImageFile.name);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                
+                // Enviar para o servidor
+                const response = await fetch('{% url "core:update_profile_photo" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Foto de perfil salva com sucesso!', 'success');
+                    // Atualizar a informação de última atualização
+                    updateLastUpdateTime();
+                    // Recarregar a página para ver a nova foto
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('Erro ao salvar a foto. Verifique o arquivo.', 'error');
+                    // Restaurar botão
+                    savePhotoBtn.disabled = false;
+                    savePhotoBtn.innerHTML = originalText;
+                }
+            } catch (error) {
+                console.error('Erro ao processar imagem:', error);
+                showAlert('Erro ao processar a imagem. Tente novamente.', 'error');
+                // Restaurar botão
+                savePhotoBtn.disabled = false;
+                savePhotoBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Salvar Foto';
+            }
+        });
+    }
+    
+    // Função para processar a imagem com rotação
+    function processImageWithRotation(file, rotation) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // Calcular novas dimensões baseadas na rotação
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Se a rotação for 90 ou 270 graus, trocar largura e altura
+                    if (Math.abs(rotation) % 180 === 90) {
+                        canvas.width = img.height;
+                        canvas.height = img.width;
+                    } else {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                    }
+                    
+                    // Centralizar e rotacionar
+                    ctx.translate(canvas.width / 2, canvas.height / 2);
+                    ctx.rotate(rotation * Math.PI / 180);
+                    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                    
+                    // Converter para blob
+                    canvas.toBlob(blob => {
+                        resolve(blob);
+                    }, file.type, 0.95);
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    // Função para atualizar o tempo da última atualização
+    function updateLastUpdateTime() {
+        const now = new Date();
+        const formattedDate = now.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        const updateElement = document.querySelector('.text-sm.text-gray-500.text-center');
+        if (updateElement) {
+            updateElement.innerHTML = `<i class="fas fa-info-circle mr-1"></i> Foto atualizada em: ${formattedDate}`;
+        }
+    }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos do DOM
+    const togglePasswordBtn = document.getElementById('toggle-password-form');
+    const togglePasswordText = document.getElementById('toggle-password-text');
+    const passwordForm = document.getElementById('password-change-form');
+    const cancelPasswordBtn = document.getElementById('cancel-password-change');
+    const passwordChangeForm = document.getElementById('password-change-form');
+    
+    // Alternar visibilidade do formulário de senha
+    if (togglePasswordBtn && passwordForm) {
+        togglePasswordBtn.addEventListener('click', function() {
+            const isHidden = passwordForm.classList.contains('hidden');
+            
+            if (isHidden) {
+                passwordForm.classList.remove('hidden');
+                togglePasswordText.textContent = 'Ocultar Formulário';
+            } else {
+                passwordForm.classList.add('hidden');
+                togglePasswordText.textContent = 'Alterar Senha';
+                // Limpar erros ao ocultar
+                document.getElementById('password-errors').classList.add('hidden');
+                document.getElementById('password-errors').innerHTML = '';
+            }
+        });
+    }
+    
+    // Cancelar alteração de senha
+    if (cancelPasswordBtn && passwordForm) {
+        cancelPasswordBtn.addEventListener('click', function() {
+            passwordForm.classList.add('hidden');
+            togglePasswordText.textContent = 'Alterar Senha';
+            // Limpar formulário e erros
+            passwordChangeForm.reset();
+            document.getElementById('password-errors').classList.add('hidden');
+            document.getElementById('password-errors').innerHTML = '';
+        });
+    }
+    
+    // Enviar formulário de alteração de senha via AJAX
+    if (passwordChangeForm) {
+        passwordChangeForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(passwordChangeForm);
+            
+            fetch(passwordChangeForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Senha alterada com sucesso!', 'success');
+                    
+                    // Atualizar a informação de última alteração de senha
+                    const passwordUpdateInfo = document.querySelector('.bg-blue-50 .text-sm.text-blue-700');
+                    if (passwordUpdateInfo && data.password_updated_at) {
+                        passwordUpdateInfo.innerHTML = `<i class="fas fa-clock mr-1"></i> Senha alterada pela última vez em: ${data.password_updated_at}`;
+                    }
+                    
+                    // Ocultar formulário e limpar
+                    passwordForm.classList.add('hidden');
+                    togglePasswordText.textContent = 'Alterar Senha';
+                    passwordChangeForm.reset();
+                } else {
+                    const errorDiv = document.getElementById('password-errors');
+                    errorDiv.classList.remove('hidden');
+                    let errorHtml = '';
+                    
+                    if (data.errors) {
+                        for (const field in data.errors) {
+                            data.errors[field].forEach(error => {
+                                errorHtml += `<p>${error.message || error}</p>`;
+                            });
+                        }
+                    } else if (data.message) {
+                        errorHtml = `<p>${data.message}</p>`;
+                    }
+                    
+                    errorDiv.innerHTML = errorHtml;
+                }
+            })
+            .catch(error => {
+                const errorDiv = document.getElementById('password-errors');
+                errorDiv.classList.remove('hidden');
+                errorDiv.innerHTML = '<p>Ocorreu um erro. Tente novamente.</p>';
+            });
+        });
+    }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Estatísticas baseadas no localStorage
+    function updateStatistics() {
+        // Estatísticas de acesso
+        let loginCount = parseInt(localStorage.getItem('loginCount')) || 0;
+        let firstLogin = parseInt(localStorage.getItem('firstLogin')) || Date.now();
+        let lastLogin = parseInt(localStorage.getItem('lastLogin')) || Date.now();
+        let loginStreak = parseInt(localStorage.getItem('loginStreak')) || 0;
+        
+        // Atualizar contagem de logins
+        loginCount++;
+        localStorage.setItem('loginCount', loginCount);
+        localStorage.setItem('lastLogin', Date.now());
+        
+        // Verificar sequência de logins
+        const lastLoginDate = new Date(lastLogin);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (lastLoginDate.toDateString() === yesterday.toDateString() || 
+            lastLoginDate.toDateString() === today.toDateString()) {
+            // Sequência mantida
+            loginStreak++;
+        } else {
+            // Sequência quebrada
+            loginStreak = 1;
+        }
+        
+        localStorage.setItem('loginStreak', loginStreak);
+        
+        // Calcular idade da conta
+        const accountAgeMs = Date.now() - firstLogin;
+        const accountAgeDays = Math.floor(accountAgeMs / (1000 * 60 * 60 * 24));
+        
+        // Formatar datas
+        const formatDate = (timestamp) => {
+            return new Date(timestamp).toLocaleDateString('pt-BR');
+        };
+        
+        // Atualizar DOM
+        document.getElementById('total-logins').textContent = loginCount;
+        document.getElementById('current-streak').textContent = `${loginStreak} dias`;
+        document.getElementById('last-login').textContent = formatDate(lastLogin);
+        document.getElementById('account-age').textContent = `${accountAgeDays} dias`;
+        
+        // Estatísticas de perfil (exemplos)
+        document.getElementById('profile-completion').textContent = '75%';
+        document.getElementById('password-strength').textContent = 'Forte';
+        
+        // Última alteração de senha
+        const lastPasswordChange = localStorage.getItem('lastPasswordChange');
+        if (lastPasswordChange) {
+            document.getElementById('last-password-change').textContent = formatDate(lastPasswordChange);
+            document.getElementById('recent-password-change').textContent = formatDate(lastPasswordChange);
+        }
+        
+        // Dados atualizados
+        document.getElementById('data-updated').textContent = formatDate(Date.now());
+        
+        // Atividades recentes
+        const lastProfileUpdate = localStorage.getItem('lastProfileUpdate');
+        if (lastProfileUpdate) {
+            document.getElementById('recent-profile-update').textContent = formatDate(lastProfileUpdate);
+        }
+        
+        const lastPhotoChange = localStorage.getItem('lastPhotoChange');
+        if (lastPhotoChange) {
+            document.getElementById('recent-photo-change').textContent = formatDate(lastPhotoChange);
+        }
+        
+        // Atualizar badges de conquistas
+        if (loginStreak >= 7) {
+            document.getElementById('streak-badge').textContent = 'Conquistada!';
+            document.getElementById('streak-badge').classList.add('badge-success');
+        }
+        
+        // Verificar força da senha (simulado)
+        const passwordStrength = Math.random() > 0.3 ? 'Forte' : 'Média';
+        document.getElementById('password-strength').textContent = passwordStrength;
+        
+        if (passwordStrength === 'Forte') {
+            document.getElementById('security-badge').textContent = 'Conquistada!';
+            document.getElementById('security-badge').classList.add('badge-success');
+        }
+    }
+    
+    // Inicializar estatísticas
+    if (!localStorage.getItem('firstLogin')) {
+        localStorage.setItem('firstLogin', Date.now());
+    }
+    if (!localStorage.getItem('loginCount')) {
+        localStorage.setItem('loginCount', '0');
+    }
+    
+    updateStatistics();
+    
+    // Ouvir eventos personalizados de outras abas
+    document.addEventListener('passwordUpdated', function(e) {
+        localStorage.setItem('lastPasswordChange', Date.now());
+        updateStatistics();
+    });
+    
+    document.addEventListener('profileUpdated', function(e) {
+        localStorage.setItem('lastProfileUpdate', Date.now());
+        updateStatistics();
+    });
+    
+    document.addEventListener('photoUpdated', function(e) {
+        localStorage.setItem('lastPhotoChange', Date.now());
+        updateStatistics();
+    });
+    
+    // Simular dados para demonstração
+    function simulateData() {
+        // Dados simulados para demonstração
+        const demoData = {
+            loginCount: Math.floor(Math.random() * 50) + 10,
+            loginStreak: Math.floor(Math.random() * 10) + 1,
+            firstLogin: Date.now() - (Math.floor(Math.random() * 90) + 10) * 24 * 60 * 60 * 1000,
+            lastPasswordChange: Date.now() - (Math.floor(Math.random() * 30) + 1) * 24 * 60 * 60 * 1000,
+            lastProfileUpdate: Date.now() - (Math.floor(Math.random() * 14) + 1) * 24 * 60 * 60 * 1000,
+            lastPhotoChange: Date.now() - (Math.floor(Math.random() * 7) + 1) * 24 * 60 * 60 * 1000
+        };
+        
+        localStorage.setItem('loginCount', demoData.loginCount);
+        localStorage.setItem('loginStreak', demoData.loginStreak);
+        localStorage.setItem('firstLogin', demoData.firstLogin);
+        localStorage.setItem('lastPasswordChange', demoData.lastPasswordChange);
+        localStorage.setItem('lastProfileUpdate', demoData.lastProfileUpdate);
+        localStorage.setItem('lastPhotoChange', demoData.lastPhotoChange);
+        
+        updateStatistics();
+    }
+    
+    // Descomente a linha abaixo para ver dados simulados
+    // simulateData();
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Carregar estatísticas ao abrir a aba
+    document.querySelector('[data-tab="stats"]').addEventListener('click', loadStatistics);
+    
+async function loadStatistics() {
+    try {
+        console.log('Carregando estatísticas...');
+        
+        const response = await fetch('{% url "core:user_statistics" %}');
+        if (!response.ok) {
+            throw new Error('Erro na resposta do servidor');
+        }
+        
+        const data = await response.json();
+        console.log('Dados recebidos:', data);
+        
+        if (data.success) {
+            updateStatisticsDOM(data.statistics);
+            createWeeklyChart(data.weekly_activity);
+            showRecentActivities(data.recent_activities);
+            showAchievements(data.achievements);
+        } else {
+            console.error('Erro do servidor:', data.message);
+            showAlert('Erro ao carregar estatísticas: ' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao carregar estatísticas:', error);
+        showAlert('Erro ao carregar estatísticas. Tente recarregar a página.', 'error');
+        
+        // Mostrar dados de exemplo em caso de erro
+        showSampleData();
+    }
+}
+
+// Função para mostrar dados de exemplo em caso de erro
+function showSampleData() {
+    // Dados de exemplo para estatísticas
+    document.getElementById('total-logins').textContent = '15';
+    document.getElementById('current-streak').textContent = '3 dias';
+    document.getElementById('last-login').textContent = new Date().toLocaleDateString('pt-BR');
+    document.getElementById('account-age').textContent = '45 dias';
+    document.getElementById('profile-completion').textContent = '75%';
+    document.getElementById('password-strength').textContent = 'Forte';
+    document.getElementById('last-password-change').textContent = '15/08/2025';
+    document.getElementById('weekly-logins').textContent = '5';
+    
+    // Mensagem de dados de exemplo
+    const container = document.getElementById('recent-activities');
+    container.innerHTML = `
+        <div class="text-center text-gray-500 py-4">
+            <i class="fas fa-info-circle text-2xl mb-2"></i>
+            <p>Dados de demonstração</p>
+            <p class="text-sm">Conecte-se para ver suas estatísticas reais</p>
+        </div>
+    `;
+}
+    
+    function updateStatisticsDOM(stats) {
+        // Atualizar estatísticas básicas
+        document.getElementById('total-logins').textContent = stats.total_logins || 0;
+        document.getElementById('current-streak').textContent = `${stats.login_streak || 0} dias`;
+        document.getElementById('last-login').textContent = stats.last_login || '--/--/---- --:--';
+        document.getElementById('account-age').textContent = `${stats.account_age_days || 0} dias`;
+        document.getElementById('profile-completion').textContent = `${stats.profile_completion || 0}%`;
+        document.getElementById('password-strength').textContent = stats.password_strength || '--';
+        document.getElementById('last-password-change').textContent = stats.last_password_change || 'Nunca';
+        document.getElementById('weekly-logins').textContent = stats.weekly_logins || 0;
+    }
+    
+    function createWeeklyChart(weeklyData) {
+        const chartContainer = document.getElementById('weekly-activity-chart');
+        chartContainer.innerHTML = '';
+        
+        const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const maxValue = Math.max(...weeklyData.map(day => day.count), 1);
+        
+        weeklyData.forEach((day, index) => {
+            const height = (day.count / maxValue) * 100;
+            const column = document.createElement('div');
+            column.className = 'flex flex-col items-center';
+            column.innerHTML = `
+                <div class="bg-blue-500 w-6 rounded-t-md transition-all duration-500" 
+                     style="height: ${height}%"></div>
+                <span class="text-xs mt-1">${days[index]}</span>
+                <span class="text-xs text-gray-500">${day.count}</span>
+            `;
+            chartContainer.appendChild(column);
+        });
+    }
+    
+    function showRecentActivities(activities) {
+        const container = document.getElementById('recent-activities');
+        container.innerHTML = '';
+        
+        if (activities.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-center">Nenhuma atividade recente</p>';
+            return;
+        }
+        
+        activities.forEach(activity => {
+            const activityEl = document.createElement('div');
+            activityEl.className = 'flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100';
+            
+            let iconClass = 'fas fa-history';
+            let bgColor = 'bg-gray-100';
+            let textColor = 'text-gray-600';
+            
+            switch(activity.type) {
+                case 'login':
+                    iconClass = 'fas fa-sign-in-alt';
+                    bgColor = 'bg-blue-100';
+                    textColor = 'text-blue-600';
+                    break;
+                case 'password_change':
+                    iconClass = 'fas fa-key';
+                    bgColor = 'bg-green-100';
+                    textColor = 'text-green-600';
+                    break;
+                case 'profile_update':
+                    iconClass = 'fas fa-user-edit';
+                    bgColor = 'bg-purple-100';
+                    textColor = 'text-purple-600';
+                    break;
+                case 'photo_change':
+                    iconClass = 'fas fa-camera';
+                    bgColor = 'bg-yellow-100';
+                    textColor = 'text-yellow-600';
+                    break;
+            }
+            
+            activityEl.innerHTML = `
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full ${bgColor} flex items-center justify-center mr-3">
+                        <i class="${iconClass} ${textColor}"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium">${activity.title}</p>
+                        <p class="text-xs text-gray-500">${activity.description}</p>
+                    </div>
+                </div>
+                <span class="text-xs text-gray-500">${activity.time}</span>
+            `;
+            
+            container.appendChild(activityEl);
+        });
+    }
+    
+    function showAchievements(achievements) {
+        const container = document.getElementById('achievements-container');
+        container.innerHTML = '';
+        
+        achievements.forEach(achievement => {
+            const achievementEl = document.createElement('div');
+            achievementEl.className = 'achievement-card';
+            
+            let badgeClass = 'badge-info';
+            if (achievement.achieved) {
+                badgeClass = 'badge-success';
+            } else if (achievement.progress > 0) {
+                badgeClass = 'badge-warning';
+            }
+            
+            achievementEl.innerHTML = `
+                <div class="w-12 h-12 rounded-full ${achievement.icon_bg} flex items-center justify-center mx-auto mb-3">
+                    <i class="${achievement.icon} ${achievement.icon_color} text-xl"></i>
+                </div>
+                <div class="achievement-title">${achievement.title}</div>
+                <div class="achievement-description">${achievement.description}</div>
+                <div class="mt-2">
+                    <span class="badge ${badgeClass}">
+                        ${achievement.achieved ? 'Conquistada!' : (achievement.progress > 0 ? `${achievement.progress}%` : 'Não iniciada')}
+                    </span>
+                </div>
+            `;
+            
+            container.appendChild(achievementEl);
+        });
+    }
+    
+    // Carregar estatísticas se a aba de stats estiver ativa
+    if (window.location.hash === '#stats' || document.getElementById('stats').classList.contains('active')) {
+        loadStatistics();
+    }
+});
+</script>
+{% endblock %}

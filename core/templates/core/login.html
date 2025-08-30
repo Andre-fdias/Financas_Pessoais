@@ -13,6 +13,31 @@
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center bg-cover bg-center relative" style="background-image: url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=900&q=80');">
+  
+  <!-- No topo do template login.html -->
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert">
+            <span>&times;</span>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if form.errors %}
+<div class="alert alert-danger">
+    <strong>Erro:</strong> Por favor, corrija os erros abaixo.
+</div>
+{% endif %}
+  
+  
+  
+  
+  
   <div class="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"></div>
   <div class="relative z-10 flex flex-col md:flex-row w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl bg-transparent my-8">
     <!-- Branding e texto -->

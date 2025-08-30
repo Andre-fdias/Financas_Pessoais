@@ -3,269 +3,406 @@
 
 {% block title %}Extrato Completo - {{ mes_atual_nome }} {{ ano_atual }}{% endblock %}
 
-
 {% block extra_head %}
-    <!-- Tailwind CSS CDN (se não estiver já no base.html) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome para ícones (se não estiver já no base.html) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Chart.js CDN (se não estiver já no base.html) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Estilos base do painel e outros elementos */
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(to right, #ece9e6, #ffffff); /* Fundo suave */
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }
+        
         .glass-panel {
-            background-color: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1rem;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
         }
 
-        @supports not (backdrop-filter: blur(16px)) {
+        @supports not (backdrop-filter: blur(12px)) {
             .glass-panel {
-                background-color: rgba(255, 255, 255, 0.9);
+                background: rgba(255, 255, 255, 0.95);
             }
         }
         
         .chart-container {
-            height: 300px; /* Altura fixa para todos os containers de gráficos */
-            min-height: 300px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            height: 320px;
+            min-height: 320px;
         }
         
-        /* Ajustando as cores para o padrão do extrato_completo.html */
         .valor-positivo {
-            background-color: #f0fdf4;
-            color: #166534;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: 500;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
         }
         
         .valor-negativo {
-            background-color: #fef2f2;
-            color: #b91c1c; /* Cor original do extrato. Ajustado de #991b1b */
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: 500;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
         }
 
-        /* Estilos para modo escuro, se aplicável, espelhando extrato_completo.html */
         .dark .valor-positivo {
-            background-color: #052e16;
-            color: #bbf7d0;
+            background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
         }
         
         .dark .valor-negativo {
-            background-color: #450a0a;
-            color: #fca5a5;
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
         }
 
-        /* Estilo para tabela de transações */
-        .table-striped tbody tr:nth-child(odd) {
-            background-color: rgba(255, 255, 255, 0.1);
+        .transaction-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid;
         }
+        
+        .transaction-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .filter-pill {
+            transition: all 0.3s ease;
+        }
+        
+        .filter-pill:hover {
+            transform: scale(1.05);
+        }
+        
+        .stats-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .table-row {
+            transition: all 0.2s ease;
+        }
+        
+        .table-row:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+        }
+        
+        .export-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+        }
+        
+        .loading-spinner {
+            display: none; /* OCULTO POR PADRÃO */
+        }
+        
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 250px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+          /* Sistema de Notificação */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        transform: translateX(100%);
+        opacity: 0;
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .notification.show {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    
+    .notification.success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    
+    .notification.error {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    
+    .notification.warning {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+    
+    .notification.info {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    }
     </style>
 {% endblock %}
 
 {% block content %}
 <div class="glass-panel min-h-screen p-8 flex flex-col space-y-6">
-    <!-- Cabeçalho -->
-    <div class="flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Extrato Completo</h1>
-            <h2 class="text-xl text-gray-600 dark:text-gray-300">{{ mes_atual_nome }} {{ ano_atual }}</h2>
-        </div>
-    </div>
-
-    <!-- Cards de Resumo -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Card Entradas -->
-        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-green-500 dark:bg-gray-800">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Total de Entradas</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ total_entradas|floatformat:2 }}</p>
-                </div>
-                <div class="bg-green-100 p-2 rounded-lg text-green-600 dark:bg-green-900 dark:text-green-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card Saídas -->
-        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-red-500 dark:bg-gray-800">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Total de Saídas</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ total_saidas|floatformat:2 }}</p>
-                </div>
-                <div class="bg-red-100 p-2 rounded-lg text-red-600 dark:bg-red-900 dark:text-red-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card Saldo -->
-        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-blue-500 dark:bg-gray-800">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Saldo do Mês</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ saldo_mes|floatformat:2 }}</p>
-                </div>
-                <div class="bg-blue-100 p-2 rounded-lg text-blue-600 dark:bg-blue-900 dark:text-blue-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                </div>
-            </div>
-            <div class="mt-4 flex items-center">
-                <span class="text-xs font-medium {% if variacao_mensal >= 0 %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %} px-2 py-1 rounded-full">
-                    {{ variacao_mensal }}% vs mês anterior
-                </span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Painel de Filtros -->
-    <div class="bg-gray-100 rounded-xl shadow-lg p-6 my-8 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-        <h2 class="text-lg font-semibold text-gray-700 mb-4 dark:text-white">Filtrar Extrato</h2>
-        
-        <!-- Linha 1: Ano e Tipo -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <!-- Filtro Ano -->
+   
+    <!-- Header Section -->
+    <div class="glass-panel p-6 mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Ano</label>
-                <div class="flex flex-wrap gap-2">
-                    {% for ano in anos_disponiveis %}
-                    <a href="?ano={{ ano }}&mes={{ mes_selecionado }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if ano == ano_selecionado %}
-                                  bg-blue-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
-                        {{ ano }}
-                    </a>
-                    {% endfor %}
-                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                    <i class="fas fa-file-invoice-dollar mr-3 text-indigo-600"></i>
+                    Extrato Completo
+                </h1>
+                <p class="text-xl text-gray-600 dark:text-gray-300 font-semibold">
+                    {{ mes_atual_nome }} {{ ano_atual }}
+                </p>
             </div>
             
-            <!-- Filtro Tipo -->
-            <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Tipo de Transação</label>
-                <div class="flex flex-wrap gap-2">
-                    <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if not tipo_filtro %}
-                                  bg-blue-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
-                        Todas
-                    </a>
-                    <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}&tipo=entrada"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if tipo_filtro == 'entrada' %}
-                                  bg-green-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
-                        Entradas
-                    </a>
-                    <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}&tipo=saida"
-                       class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                              {% if tipo_filtro == 'saida' %}
-                                  bg-red-600 text-white shadow
-                              {% else %}
-                                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                              {% endif %}">
-                        Saídas
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Linha 2: Mês -->
-        <div>
-            <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Mês</label>
-            <div class="flex flex-wrap gap-2">
-                <a href="?ano={{ ano_selecionado }}&mes=todos{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}"
-                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                          {% if mes_selecionado == 'todos' %}
-                              bg-blue-600 text-white shadow
-                          {% else %}
-                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                          {% endif %}">
-                    Todos
-                </a>
-                {% for mes_num, mes_nome in meses %}
-                <a href="?ano={{ ano_selecionado }}&mes={{ mes_num }}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}"
-                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                          {% if mes_selecionado == mes_num|stringformat:'02d' %}
-                              bg-blue-600 text-white shadow
-                          {% else %}
-                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                          {% endif %}">
-                    {{ mes_nome|slice:":3" }}
-                </a>
-                {% endfor %}
+            <div class="flex flex-wrap gap-3">
+                <button onclick="exportToCSV()" class="export-btn px-6 py-3 text-white rounded-lg font-semibold flex items-center gap-2">
+                    <i class="fas fa-file-export"></i>
+                    Exportar CSV
+                </button>
+                <button onclick="window.print()" class="px-6 py-3 bg-gray-600 text-white rounded-lg font-semibold flex items-center gap-2 hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-print"></i>
+                    Imprimir
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Tabela de Transações -->
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden mt-8 dark:bg-gray-800">
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 stats-grid">
+        <!-- Entradas Card -->
+        <div class="glass-panel p-6 stats-card border-l-4 border-green-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-2 dark:text-gray-300">
+                        <i class="fas fa-arrow-down text-green-500 mr-2"></i>
+                        Total de Entradas
+                    </p>
+                    <p class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
+                        {{ total_entradas|br_currency }}
+                    </p>
+                    <p class="text-sm text-green-600 dark:text-green-400 mt-2">
+                        <i class="fas fa-chart-line"></i>
+                        {{ transacoes_entradas|length }} transações
+                    </p>
+                </div>
+                <div class="bg-green-100 p-3 rounded-full text-green-600 dark:bg-green-900 dark:text-green-200">
+                    <i class="fas fa-download text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saídas Card -->
+        <div class="glass-panel p-6 stats-card border-l-4 border-red-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-2 dark:text-gray-300">
+                        <i class="fas fa-arrow-up text-red-500 mr-2"></i>
+                        Total de Saídas
+                    </p>
+                    <p class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
+                        {{ total_saidas|br_currency }}
+                    </p>
+                    <p class="text-sm text-red-600 dark:text-red-400 mt-2">
+                        <i class="fas fa-chart-line"></i>
+                        {{ transacoes_saidas|length }} transações
+                    </p>
+                </div>
+                <div class="bg-red-100 p-3 rounded-full text-red-600 dark:bg-red-900 dark:text-red-200">
+                    <i class="fas fa-upload text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saldo Card -->
+        <div class="glass-panel p-6 stats-card border-l-4 border-blue-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 mb-2 dark:text-gray-300">
+                        <i class="fas fa-balance-scale text-blue-500 mr-2"></i>
+                        Saldo do Mês
+                    </p>
+                    <p class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
+                        {{ saldo_mes|br_currency }}
+                    </p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <span class="text-xs font-semibold px-3 py-1 rounded-full {% if variacao_mensal >= 0 %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                            <i class="fas {% if variacao_mensal >= 0 %}fa-arrow-up{% else %}fa-arrow-down{% endif %} mr-1"></i>
+                            {{ variacao_mensal|floatformat:2 }}%
+                        </span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">vs mês anterior</span>
+                    </div>
+                </div>
+                <div class="bg-blue-100 p-3 rounded-full text-blue-600 dark:bg-blue-900 dark:text-blue-200">
+                    <i class="fas fa-wallet text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="glass-panel p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6 flex items-center">
+            <i class="fas fa-filter mr-3 text-indigo-600"></i>
+            Filtros do Extrato
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Ano Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
+                    <i class="fas fa-calendar-alt mr-2"></i>Ano
+                </label>
+                <select onchange="updateFilters()" id="anoFilter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    {% for ano in anos_disponiveis %}
+                    <option value="{{ ano }}" {% if ano == ano_selecionado %}selected{% endif %}>{{ ano }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Mês Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
+                    <i class="fas fa-calendar mr-2"></i>Mês
+                </label>
+                <select onchange="updateFilters()" id="mesFilter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="todos" {% if mes_selecionado == 'todos' %}selected{% endif %}>Todos os meses</option>
+                    {% for mes_num, mes_nome in meses %}
+                    <option value="{{ mes_num }}" {% if mes_selecionado == mes_num|stringformat:'02d' %}selected{% endif %}>{{ mes_nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Tipo Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
+                    <i class="fas fa-exchange-alt mr-2"></i>Tipo
+                </label>
+                <select onchange="updateFilters()" id="tipoFilter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Todos os tipos</option>
+                    <option value="entrada" {% if tipo_filtro == 'entrada' %}selected{% endif %}>Entradas</option>
+                    <option value="saida" {% if tipo_filtro == 'saida' %}selected{% endif %}>Saídas</option>
+                </select>
+            </div>
+
+            <!-- Quick Actions -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
+                    <i class="fas fa-bolt mr-2"></i>Ações Rápidas
+                </label>
+                <div class="flex gap-2">
+                    <button onclick="clearFilters()" class="flex-1 bg-gray-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-600 transition-colors">
+                        Limpar
+                    </button>
+                    <button onclick="applyFilters()" class="flex-1 bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-indigo-700 transition-colors">
+                        Aplicar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Filters Badges -->
+        <div class="flex flex-wrap gap-2">
+            {% if ano_selecionado %}
+            <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium dark:bg-blue-900 dark:text-blue-200">
+                Ano: {{ ano_selecionado }}
+                <button onclick="removeFilter('ano')" class="ml-2 text-blue-600 hover:text-blue-800">×</button>
+            </span>
+            {% endif %}
+            
+            {% if mes_selecionado != 'todos' %}
+            <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium dark:bg-green-900 dark:text-green-200">
+                Mês: {{ mes_selecionado }}
+                <button onclick="removeFilter('mes')" class="ml-2 text-green-600 hover:text-green-800">×</button>
+            </span>
+            {% endif %}
+            
+            {% if tipo_filtro %}
+            <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium dark:bg-purple-900 dark:text-purple-200">
+                Tipo: {{ tipo_filtro|title }}
+                <button onclick="removeFilter('tipo')" class="ml-2 text-purple-600 hover:text-purple-800">×</button>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="glass-panel overflow-hidden">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
+                <i class="fas fa-list-alt mr-3 text-indigo-600"></i>
+                Transações
+                <span class="ml-3 bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium dark:bg-indigo-900 dark:text-indigo-200">
+                    {{ transacoes|length }} registros
+                </span>
+            </h2>
+        </div>
+
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-indigo-600 dark:bg-indigo-800">
+            <table class="w-full">
+                <thead class="bg-indigo-50 dark:bg-indigo-900">
                     <tr>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Tipo</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Nome</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Valor</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Conta</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Local</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Categoria</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Data</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Recorrência</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Parcelas</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">
+                            <i class="fas fa-exchange-alt mr-2"></i>Tipo
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">
+                            <i class="fas fa-tag mr-2"></i>Descrição
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">
+                            <i class="fas fa-money-bill-wave mr-2"></i>Valor
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">
+                            <i class="fas fa-building mr-2"></i>Conta
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">
+                            <i class="fas fa-calendar-day mr-2"></i>Data
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">
+                            <i class="fas fa-cog mr-2"></i>Ações
+                        </th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                     {% for transacao in transacoes %}
-                    <tr class="hover:bg-gray-50 transition-colors duration-150 dark:hover:bg-gray-700">
+                    <tr class="table-row hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap">
                             {% if transacao|classname == 'Entrada' %}
-                                <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
-                                    <span aria-hidden="true" class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
-                                    <span class="relative">Entrada</span>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    <i class="fas fa-arrow-down mr-2"></i>Entrada
                                 </span>
                             {% else %}
-                                <span class="relative inline-block px-3 py-1 font-semibold text-red-900 leading-tight">
-                                    <span aria-hidden="true" class="absolute inset-0 bg-red-200 opacity-50 rounded-full"></span>
-                                    <span class="relative">Saída</span>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                    <i class="fas fa-arrow-up mr-2"></i>Saída
                                 </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        
+                        <td class="px-6 py-4">
                             <div class="font-medium text-gray-900 dark:text-white">{{ transacao.nome }}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                {% if transacao.local %}{{ transacao.local }}{% endif %}
+                                {% if transacao|classname == 'Saida' and transacao.categoria %}
+                                    • {{ transacao.get_categoria_display }}
+                                {% endif %}
+                            </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold">
+                        
+                        <td class="px-6 py-4 whitespace-nowrap">
                             {% if transacao|classname == 'Entrada' %}
                                 <span class="valor-positivo">
-                                    {{ transacao.valor|br_currency }}
+                                    +{{ transacao.valor|br_currency }}
                                 </span>
                             {% else %}
                                 <span class="valor-negativo">
@@ -273,76 +410,511 @@
                                 </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                            {{ transacao.conta_bancaria.get_nome_banco_display }}
+                        
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900 dark:text-white">{{ transacao.conta_bancaria.get_nome_banco_display }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ transacao.conta_bancaria.get_tipo_display }}
+                            </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                            {{ transacao.local|default:"-" }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                            {% if transacao|classname == 'Saida' %}
-                                {{ transacao.get_categoria_display }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                            {% if transacao|classname == 'Entrada' %}
-                                {{ transacao.data|date:"d/m/Y" }}
-                            {% else %}
-                                {{ transacao.data_vencimento|date:"d/m/Y" }}
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                            {% if transacao|classname == 'Saida' %}
-                                {% if transacao.recorrente and transacao.recorrente != 'unica' %}
-                                    {{ transacao.get_recorrente_display }}
+                        
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900 dark:text-white">
+                                {% if transacao|classname == 'Entrada' %}
+                                    {{ transacao.data|date:"d/m/Y" }}
                                 {% else %}
-                                    Não
+                                    {{ transacao.data_vencimento|date:"d/m/Y" }}
                                 {% endif %}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                            {% if transacao|classname == 'Saida' %}
-                                {% if transacao.quantidade_parcelas and transacao.quantidade_parcelas > 1 %}
-                                    {{ transacao.quantidade_parcelas }}
-                                {% else %}
-                                    Única
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                {% if transacao|classname == 'Saida' %}
+                                    {{ transacao.get_situacao_display }}
                                 {% endif %}
-                            {% else %}
-                                -
-                            {% endif %}
+                            </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                            {% if transacao|classname == 'Saida' %}
-                                {% if transacao.situacao == 'pago' %}
-                                    <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
-                                        <span aria-hidden="true" class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
-                                        <span class="relative">Pago</span>
-                                    </span>
-                                {% else %}
-                                    <span class="relative inline-block px-3 py-1 font-semibold text-red-900 leading-tight">
-                                        <span aria-hidden="true" class="absolute inset-0 bg-red-200 opacity-50 rounded-full"></span>
-                                        <span class="relative">Pendente</span>
-                                    </span>
-                                {% endif %}
-                            {% else %}
-                                -
+                        
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex gap-2">
+                            <button onclick="viewTransaction({{ transacao.id }})" class="p-2 text-blue-600 hover:text-blue-800 transition-colors" title="Ver detalhes">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            {% if transacao|classname == 'Saida' and transacao.situacao == 'pendente' %}
+                            <button onclick="markAsPaid({{ transacao.id }})" class="p-2 text-green-600 hover:text-green-800 transition-colors" title="Marcar como pago">
+                                <i class="fas fa-check-circle"></i>
+                            </button>
                             {% endif %}
-                        </td>
+                        </div>
+                    </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="10" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                            Nenhuma transação encontrada para o período selecionado
+                        <td colspan="6" class="px-6 py-12 text-center">
+                            <div class="text-gray-400 dark:text-gray-500">
+                                <i class="fas fa-inbox text-4xl mb-4"></i>
+                                <p class="text-lg font-medium">Nenhuma transação encontrada</p>
+                                <p class="text-sm">Tente ajustar os filtros ou adicione novas transações</p>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination -->
+        {% if transacoes.has_other_pages %}
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex justify-between items-center">
+                <div class="text-sm text-gray-700 dark:text-gray-300">
+                    Mostrando {{ transacoes.start_index }} - {{ transacoes.end_index }} de {{ transacoes.paginator.count }} registros
+                </div>
+                <div class="flex gap-2">
+                    {% if transacoes.has_previous %}
+                    <a href="?page={{ transacoes.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-300">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+                    
+                    {% for num in transacoes.paginator.page_range %}
+                    {% if transacoes.number == num %}
+                    <span class="px-3 py-2 bg-indigo-600 text-white rounded-lg">{{ num }}</span>
+                    {% else %}
+                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-300">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if transacoes.has_next %}
+                    <a href="?page={{ transacoes.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-300">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
+
+<!-- Loading Spinner (OCULTO POR PADRÃO) -->
+<div id="loadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+        <p class="text-center mt-4 text-gray-600">Processando...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function updateFilters() {
+        const ano = document.getElementById('anoFilter').value;
+        const mes = document.getElementById('mesFilter').value;
+        const tipo = document.getElementById('tipoFilter').value;
+        
+        let url = `?ano=${ano}&mes=${mes}`;
+        if (tipo) url += `&tipo=${tipo}`;
+        
+        showLoading();
+        window.location.href = url;
+    }
+
+    function applyFilters() {
+        updateFilters();
+    }
+
+    function clearFilters() {
+        showLoading();
+        window.location.href = '?';
+    }
+
+    function removeFilter(filterType) {
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.delete(filterType);
+        
+        showLoading();
+        window.location.href = '?' + urlParams.toString();
+    }
+
+    function showLoading() {
+        document.getElementById('loadingSpinner').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingSpinner').classList.add('hidden');
+    }
+
+    function exportToCSV() {
+        showLoading();
+        // Simulate CSV export (implement actual CSV generation in backend)
+        setTimeout(() => {
+            alert('Funcionalidade de exportação em desenvolvimento!');
+            hideLoading();
+        }, 1000);
+    }
+
+    function viewTransaction(id, type) {
+        alert(`Visualizando ${type} ID: ${id}`);
+        // Implement modal or detail view
+    }
+
+    function markAsPaid(id) {
+        if (confirm('Marcar esta transação como paga?')) {
+            showLoading();
+            // Implement AJAX call to mark as paid
+            setTimeout(() => {
+                alert('Transação marcada como paga!');
+                hideLoading();
+                location.reload();
+            }, 1000);
+        }
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 'e':
+                    e.preventDefault();
+                    exportToCSV();
+                    break;
+                case 'p':
+                    e.preventDefault();
+                    window.print();
+                    break;
+                case 'f':
+                    e.preventDefault();
+                    document.getElementById('anoFilter').focus();
+                    break;
+            }
+        }
+    });
+
+    // Esconder loading se a página terminar de carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        hideLoading();
+        
+        const tooltips = document.querySelectorAll('[title]');
+        tooltips.forEach(tip => {
+            new bootstrap.Tooltip(tip);
+        });
+    });
+
+    // Esconder loading se ocorrer algum erro
+    window.addEventListener('error', function() {
+        hideLoading();
+    });
+
+    function viewTransaction(id, type) {
+        showLoading();
+        
+        fetch(`/api/transacao/${id}/detalhes/`)
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    abrirModalDetalhes(data.html);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Erro ao carregar detalhes da transação');
+                console.error('Error:', error);
+            });
+    }
+
+    function markAsPaid(id) {
+        if (confirm('Tem certeza que deseja marcar esta transação como paga?')) {
+            showLoading();
+            
+            fetch(`/api/transacao/${id}/marcar-pago/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    alert(data.message);
+                    location.reload(); // Recarrega a página para atualizar os dados
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Erro ao marcar transação como paga');
+                console.error('Error:', error);
+            });
+        }
+    }
+
+    function abrirModalDetalhes(html) {
+        // Criar modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <button onclick="fecharModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                    ${html}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden'; // Previne scroll
+    }
+
+    function fecharModal() {
+        const modal = document.querySelector('.fixed.inset-0.bg-black');
+        if (modal) {
+            modal.remove();
+            document.body.style.overflow = ''; // Restaura scroll
+        }
+    }
+
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    }
+
+    // Fechar modal com ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            fecharModal();
+        }
+    });
+
+    // Fechar modal clicando fora
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('fixed') && e.target.classList.contains('inset-0')) {
+            fecharModal();
+        }
+    });
+
+
+    // Sistema de Notificação
+    function showNotification(message, type = 'info', duration = 5000) {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 transform transition-all duration-300 ease-in-out ${
+            type === 'success' ? 'bg-green-500' :
+            type === 'error' ? 'bg-red-500' :
+            type === 'warning' ? 'bg-yellow-500' :
+            'bg-blue-500'
+        } text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3`;
+        
+        notification.innerHTML = `
+            <i class="fas ${
+                type === 'success' ? 'fa-check-circle' :
+                type === 'error' ? 'fa-exclamation-circle' :
+                type === 'warning' ? 'fa-exclamation-triangle' :
+                'fa-info-circle'
+            }"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        // Adiciona à página
+        document.body.appendChild(notification);
+        
+        // Animação de entrada
+        setTimeout(() => {
+            notification.classList.add('translate-x-0', 'opacity-100');
+        }, 10);
+        
+        // Remove após a duração
+        if (duration > 0) {
+            setTimeout(() => {
+                removeNotification(notification);
+            }, duration);
+        }
+        
+        return notification;
+    }
+
+    function removeNotification(notification) {
+        notification.classList.remove('translate-x-0', 'opacity-100');
+        notification.classList.add('translate-x-full', 'opacity-0');
+        
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.parentElement.removeChild(notification);
+            }
+        }, 300);
+    }
+
+    // Função corrigida para obter CSRF token
+    function getCSRFToken() {
+        // Tenta várias formas de obter o token CSRF
+        const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                     document.cookie.match(/csrftoken=([^;]+)/)?.[1] ||
+                     '';
+        return token;
+    }
+
+    function viewTransaction(id) {
+        showLoading();
+        
+        // URL correta da API - removendo o parâmetro type que não é necessário
+        fetch(`/api/transacao/${id}/detalhes/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro na requisição');
+                }
+                return response.json();
+            })
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    abrirModalDetalhes(data.html);
+                } else {
+                    showNotification(data.message || 'Erro ao carregar detalhes', 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showNotification('Erro ao carregar detalhes da transação', 'error');
+                console.error('Error:', error);
+            });
+    }
+
+    function markAsPaid(id) {
+        if (confirm('Tem certeza que deseja marcar esta transação como paga?')) {
+            showLoading();
+            
+            const csrfToken = getCSRFToken();
+            
+            fetch(`/api/transacao/${id}/marcar-pago/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({}),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro na requisição');
+                }
+                return response.json();
+            })
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Atualiza apenas a linha da tabela em vez de recarregar a página
+                    atualizarLinhaTransacao(id);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showNotification('Erro ao marcar transação como paga', 'error');
+                console.error('Error:', error);
+            });
+        }
+    }
+
+    function atualizarLinhaTransacao(id) {
+        // Encontra a linha da tabela e atualiza o status
+        const buttons = document.querySelectorAll(`button[onclick*="markAsPaid(${id})"]`);
+        buttons.forEach(button => {
+            const cell = button.closest('td');
+            if (cell) {
+                // Remove o botão "Marcar como pago"
+                button.remove();
+                
+                // Atualiza o status na célula de status
+                const statusCell = cell.closest('tr').querySelector('td:nth-child(6)');
+                if (statusCell) {
+                    statusCell.innerHTML = `
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            Pago
+                        </span>
+                    `;
+                }
+            }
+        });
+    }
+
+    function abrirModalDetalhes(html) {
+        // Fechar modal existente se houver
+        fecharModal();
+        
+        // Criar novo modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div class="p-6 relative">
+                    <button onclick="fecharModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                    ${html}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    }
+
+    function fecharModal() {
+        const modals = document.querySelectorAll('.fixed.inset-0.bg-black');
+        modals.forEach(modal => modal.remove());
+        document.body.style.overflow = '';
+    }
+
+    // ... outras funções existentes ...
+
+    // Event listeners para teclado
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            fecharModal();
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('fixed') && e.target.classList.contains('inset-0')) {
+            fecharModal();
+        }
+    });
+
+    // Estilos para as notificações (adiciona dinamicamente)
+    const notificationStyles = `
+        .notification-enter {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        .notification-enter-active {
+            transform: translateX(0);
+            opacity: 1;
+            transition: all 0.3s ease-in-out;
+        }
+        .notification-exit {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .notification-exit-active {
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s ease-in-out;
+        }
+    `;
+
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = notificationStyles;
+    document.head.appendChild(styleSheet);
+</script>
 {% endblock %}

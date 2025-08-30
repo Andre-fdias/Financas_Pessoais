@@ -4,931 +4,1370 @@
 {% block title %}Dashboard Financeiro{% endblock %}
 
 {% block extra_head %}
-    <!-- Tailwind CSS CDN (se não estiver já no base.html) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome para ícones (se não estiver já no base.html) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Chart.js CDN (se não estiver já no base.html) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Estilos base do painel e outros elementos */
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(to right, #ece9e6, #ffffff); /* Fundo suave */
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }
+        
+        /* Estilo principal para painéis com efeito de vidro (Glassmorphism) */
         .glass-panel {
-            background-color: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1rem;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
         }
 
-        @supports not (backdrop-filter: blur(16px)) {
+        /* Fallback para navegadores que não suportam backdrop-filter */
+        @supports not (backdrop-filter: blur(12px)) {
             .glass-panel {
-                background-color: rgba(255, 255, 255, 0.9);
+                background: rgba(255, 255, 255, 0.95);
             }
         }
         
+        /* Estilos para valores monetários positivos */
+        .valor-positivo {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+        
+        /* Estilos para valores monetários negativos */
+        .valor-negativo {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        /* Ajustes para modo escuro */
+        .dark .valor-positivo {
+            background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+        }
+        
+        .dark .valor-negativo {
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+        }
+
+        /* Estilo para cards de estatísticas, com transição de hover */
+        .stats-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Estilo para linhas de tabela, com transição de hover */
+        .table-row {
+            transition: all 0.2s ease;
+        }
+        
+        .table-row:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+        }
+        
+        /* Estilo para títulos de cards */
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .dark .card-title {
+            color: #e5e7eb;
+        }
+
+        /* Estilo para valores grandes em cards */
+        .card-value {
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin-top: 0.5rem;
+        }
+
+        /* Altura fixa para containers de gráficos */
         .chart-container {
-            height: 300px; /* Altura fixa para todos os containers de gráficos */
+            height: 300px;
             min-height: 300px;
             display: flex;
             justify-content: center;
             align-items: center;
         }
-        
-        /* Ajustando as cores para o padrão do extrato_completo.html */
-        .valor-positivo {
-            background-color: #f0fdf4;
-            color: #166534;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: 500;
-        }
-        
-        .valor-negativo {
-            background-color: #fef2f2;
-            color: #b91c1c; /* Cor original do extrato. Ajustado de #991b1b */
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: 500;
-        }
-
-        /* Estilos para modo escuro, se aplicável, espelhando extrato_completo.html */
-        .dark .valor-positivo {
-            background-color: #052e16;
-            color: #bbf7d0;
-        }
-        
-        .dark .valor-negativo {
-            background-color: #450a0a;
-            color: #fca5a5;
-        }
-
-        /* Estilo para tabela de transações */
-        .table-striped tbody tr:nth-child(odd) {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
     </style>
 {% endblock %}
 
 {% block content %}
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Dashboard Financeiro</h1>
-        
-        <!-- Filtro de Período (simulado) -->
-        <div class="flex justify-end mb-6">
-            <label for="periodo-select" class="sr-only">Filtrar por Período</label>
-            <select id="periodo-select" class="rounded-lg border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 px-4 py-2">
-                <option value="30">Últimos 30 dias</option>
-                <option value="90">Últimos 90 dias</option>
-                <option value="365">Últimos 365 dias</option>
-                <option value="custom">Período Personalizado</option>
-            </select>
-        </div>
+<div class="glass-panel min-h-screen p-8 flex flex-col space-y-6">
 
-        <!-- Cards de dados principais -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="glass-panel p-6 shadow-md rounded-lg text-gray-800">
-                <div class="flex items-center justify-between">
-                    <span class="text-xl font-semibold">Saldo Geral</span>
-                    <i class="fas fa-balance-scale text-3xl text-blue-500"></i>
-                </div>
-                <p class="mt-2 text-4xl font-extrabold" id="saldoGeral">R$ 0,00</p>
-                <div class="mt-4 text-sm text-gray-600">
-                    <i class="fas fa-info-circle"></i>
-                    <span class="ml-1">Total de todas as contas</span>
-                </div>
-            </div>
-
-            <div class="glass-panel p-6 shadow-md rounded-lg text-gray-800">
-                <div class="flex items-center justify-between">
-                    <span class="text-xl font-semibold">Receitas do Mês</span>
-                    <i class="fas fa-arrow-up text-3xl text-green-500"></i>
-                </div>
-                <p class="mt-2 text-4xl font-extrabold" id="entradasMes">R$ 0,00</p>
-                <div class="mt-4 text-sm text-gray-600">
-                    <span id="variacaoReceitas" class="font-medium text-green-600">0%</span> do mês anterior
-                </div>
-            </div>
-
-            <div class="glass-panel p-6 shadow-md rounded-lg text-gray-800">
-                <div class="flex items-center justify-between">
-                    <span class="text-xl font-semibold">Despesas do Mês</span>
-                    <i class="fas fa-arrow-down text-3xl text-red-500"></i>
-                </div>
-                <p class="mt-2 text-4xl font-extrabold" id="saidasMes">R$ 0,00</p>
-                <div class="mt-4 text-sm text-gray-600">
-                    <span id="variacaoDespesas" class="font-medium text-red-600">0%</span> do mês anterior
-                </div>
-            </div>
-
-            <div class="glass-panel p-6 shadow-md rounded-lg text-gray-800">
-                <div class="flex items-center justify-between">
-                    <span class="text-xl font-semibold">Reserva de Emergência</span>
-                    <i class="fas fa-hand-holding-usd text-3xl text-purple-500"></i>
-                </div>
-                <p class="mt-2 text-4xl font-extrabold" id="reservaEmergencia">R$ 0,00</p>
-                <div class="mt-4 text-sm text-gray-600">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span class="ml-1">Meta: 6 meses de despesas</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Gráficos Principais -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <!-- Gráfico de Receitas vs Despesas Mensais -->
-            <div class="glass-panel p-6 shadow-md rounded-lg">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Receitas vs Despesas (Últimos 7 meses)</h2>
-                <div class="chart-container">
-                    <canvas id="receitasDespesasChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Gráfico de Saldo Acumulado -->
-            <div class="glass-panel p-6 shadow-md rounded-lg">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Saldo Acumulado (Últimos 7 meses)</h2>
-                <div class="chart-container">
-                    <canvas id="saldoAcumuladoChart"></canvas>
-                </div>
-            </div>
-            
-            <!-- Gráfico de Sazonalidade -->
-            <div class="glass-panel p-6 shadow-md rounded-lg">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Análise de Sazonalidade</h2>
-                <div class="chart-container">
-                    <canvas id="sazonalidadeChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Gráfico de Projeção Futura -->
-            <div class="glass-panel p-6 shadow-md rounded-lg">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Projeção Futura (Próximos 6 meses)</h2>
-                <div class="chart-container">
-                    <canvas id="projecaoFuturaChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Gráfico de Categorias de Gastos -->
-            <div class="glass-panel p-6 shadow-md rounded-lg">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Gastos por Categoria</h2>
-                <div class="chart-container">
-                    <canvas id="categoriasChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Gráfico de Forma de Pagamento -->
-            <div class="glass-panel p-6 shadow-md rounded-lg">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Gastos por Forma de Pagamento</h2>
-                <div class="chart-container">
-                    <canvas id="formasPagamentoChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Gráfico de Despesas Fixas vs Variáveis -->
-            <div class="glass-panel p-6 shadow-md rounded-lg">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Despesas Fixas vs Variáveis</h2>
-                <div class="chart-container">
-                    <canvas id="despesasFixasVariaveisChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Gráfico de Status de Pagamentos -->
-            <div class="glass-panel p-6 shadow-md rounded-lg">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Status de Pagamentos</h2>
-                <div class="chart-container">
-                    <canvas id="statusPagamentosChart"></canvas>
-                </div>
-            </div>
-            
-            <!-- Gráfico de Alocação de Investimentos -->
-            <div class="glass-panel p-6 shadow-md rounded-lg">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Sugestão de Alocação de Investimentos</h2>
-                <div class="chart-container">
-                    <canvas id="alocacaoInvestimentosChart"></canvas>
-                </div>
-                <p class="mt-4 text-sm text-gray-600 italic text-center">
-                    <strong>Sugestão:</strong> <span id="sugestaoInvestimentos">Foque em construir reserva de emergência primeiro.</span>
+    <!-- Seção do Cabeçalho - Usando o padrão glass-panel -->
+    <div class="glass-panel p-6 mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                    <i class="fas fa-chart-line mr-3 text-indigo-600"></i>
+                    Dashboard Financeiro
+                </h1>
+                <p class="text-xl text-gray-600 dark:text-gray-300 font-semibold">
+                    Visão geral e detalhada das suas finanças
                 </p>
             </div>
-        </div>
-
-        <!-- Indicadores de Saúde Financeira -->
-        <div class="glass-panel p-6 shadow-md rounded-lg mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Indicadores de Saúde Financeira</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div>
-                    <h3 class="font-semibold text-lg">Liquidez Corrente</h3>
-                    <p class="text-3xl font-bold text-blue-600" id="liquidezCorrente">0%</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-lg">Margem de Segurança</h3>
-                    <p class="text-3xl font-bold text-green-600" id="margemSeguranca">0%</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-lg">Endividamento</h3>
-                    <p class="text-3xl font-bold text-red-600" id="endividamento">0%</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-lg">Poupança Mensal Estimada</h3>
-                    <p class="text-3xl font-bold text-purple-600" id="poupancaMensal">R$ 0,00</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-lg">Reserva de Emergência Ideal</h3>
-                    <p class="text-3xl font-bold text-orange-600" id="reservaEmergenciaIdeal">R$ 0,00</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-lg">Nível de Risco</h3>
-                    <p class="text-3xl font-bold text-yellow-600" id="nivelRisco">Baixo</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Análise Comportamental -->
-        <div class="glass-panel p-6 shadow-md rounded-lg mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Análise Comportamental</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <h3 class="font-semibold text-xl mb-2">Gastos por Dia da Semana</h3>
-                    <div class="chart-container">
-                        <canvas id="gastosPorDiaChart"></canvas>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-xl mb-2">Gastos por Tipo (Comportamental)</h3>
-                    <div class="chart-container">
-                        <canvas id="categoriasComportamentoChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Simulações de Cenários -->
-        <div class="glass-panel p-6 shadow-md rounded-lg mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Simulações de Cenários</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="p-4 bg-gray-50 rounded-lg shadow">
-                    <h4 class="font-semibold">Aumento de 10% nas Despesas:</h4>
-                    <p class="text-lg" id="aumentoDespesas">R$ 0,00</p>
-                </div>
-                <div class="p-4 bg-gray-50 rounded-lg shadow">
-                    <h4 class="font-semibold">Redução de 10% nas Despesas:</h4>
-                    <p class="text-lg" id="reducaoDespesas">R$ 0,00</p>
-                </div>
-                <div class="p-4 bg-gray-50 rounded-lg shadow">
-                    <h4 class="font-semibold">Aumento de 10% nas Receitas:</h4>
-                    <p class="text-lg" id="aumentoReceitas">R$ 0,00</p>
-                </div>
-                <div class="p-4 bg-gray-50 rounded-lg shadow">
-                    <h4 class="font-semibold">Redução de 10% nas Receitas:</h4>
-                    <p class="text-lg" id="reducaoReceitas">R$ 0,00</p>
-                </div>
-                <div class="p-4 bg-gray-50 rounded-lg shadow">
-                    <h4 class="font-semibold">Impacto da Inflação (5%):</h4>
-                    <p class="text-lg" id="impactoInflacao">R$ 0,00</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Análise de Riscos -->
-        <div class="glass-panel p-6 shadow-md rounded-lg mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Análise de Riscos</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
-                <div>
-                    <h3 class="font-semibold text-lg">Concentração de Risco de Renda</h3>
-                    <p class="text-3xl font-bold text-red-600" id="concentracaoRisco">0%</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-lg">Reserva de Emergência Coberta</h3>
-                    <p class="text-3xl font-bold text-green-600" id="reservaIdealCoberta">R$ 0,00 / R$ 0,00</p>
-                </div>
-            </div>
-            <p class="mt-4 text-sm text-gray-600 italic text-center">
-                O nível de risco da sua renda é <strong id="nivelRiscoTexto">Baixo</strong>.
-            </p>
-        </div>
-
-        <!-- Últimas Transações -->
-        <div class="glass-panel p-6 shadow-md rounded-lg">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Últimas Transações</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white rounded-lg overflow-hidden table-striped">
-                    <thead class="bg-gray-200">
-                        <tr>
-                            <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Data</th>
-                            <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Descrição</th>
-                            <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Valor</th>
-                            <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Tipo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ultimasTransacoesTable">
-                        <!-- Exemplos de dados. Seriam preenchidos dinamicamente. -->
-                        <tr class="border-b border-gray-200">
-                            <td class="py-3 px-4 text-gray-700">15/08/2025</td>
-                            <td class="py-3 px-4 text-gray-700">Salário Mensal</td>
-                            <td class="py-3 px-4 text-green-600 font-semibold">R$ 8.000,00</td>
-                            <td class="py-3 px-4 text-green-600 font-semibold">Entrada</td>
-                        </tr>
-                        <tr class="border-b border-gray-200">
-                            <td class="py-3 px-4 text-gray-700">12/08/2025</td>
-                            <td class="py-3 px-4 text-gray-700">Aluguel</td>
-                            <td class="py-3 px-4 text-red-600 font-semibold">R$ 1.500,00</td>
-                            <td class="py-3 px-4 text-red-600 font-semibold">Saída</td>
-                        </tr>
-                        <tr class="border-b border-gray-200">
-                            <td class="py-3 px-4 text-gray-700">10/08/2025</td>
-                            <td class="py-3 px-4 text-gray-700">Compras de Mercado</td>
-                            <td class="py-3 px-4 text-red-600 font-semibold">R$ 350,00</td>
-                            <td class="py-3 px-4 text-red-600 font-semibold">Saída</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="flex flex-wrap gap-3">
+                <!-- Botões ou ações rápidas podem ser adicionados aqui -->
             </div>
         </div>
     </div>
 
-    <script>
-        // Função JS simples para formatar moeda (substitui o filtro Django)
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }).format(value);
+    <!-- Cards de dados principais - Seguindo o padrão stats-card do conta_list -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 stats-grid">
+        <!-- Saldo Geral -->
+        <div class="glass-panel p-6 stats-card border-l-4 border-blue-500">
+            <div class="flex items-center justify-between">
+                <span class="card-title text-gray-800 dark:text-gray-200">Saldo Geral</span>
+                <i class="fas fa-balance-scale text-3xl text-blue-500"></i>
+            </div>
+            <p id="saldoGeral" class="card-value"></p>
+            <div class="mt-4 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                <i class="fas fa-info-circle mr-1"></i>
+                <span>Visão consolidada das suas finanças</span>
+            </div>
+        </div>
+
+        <!-- Receitas do Mês -->
+        <div class="glass-panel p-6 stats-card border-l-4 border-green-500">
+            <div class="flex items-center justify-between">
+                <span class="card-title text-gray-800 dark:text-gray-200">Receitas do Mês</span>
+                <i class="fas fa-arrow-up text-3xl text-green-500"></i>
+            </div>
+            <p id="entradasMes" class="card-value text-green-600"></p>
+            <div class="mt-4 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                <span id="variacaoReceitas" class="font-medium mr-1"></span> vs mês anterior
+            </div>
+        </div>
+
+        <!-- Despesas do Mês -->
+        <div class="glass-panel p-6 stats-card border-l-4 border-red-500">
+            <div class="flex items-center justify-between">
+                <span class="card-title text-gray-800 dark:text-gray-200">Despesas do Mês</span>
+                <i class="fas fa-arrow-down text-3xl text-red-500"></i>
+            </div>
+            <p id="saidasMes" class="card-value text-red-600"></p>
+            <div class="mt-4 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                <span id="variacaoDespesas" class="font-medium mr-1"></span> vs mês anterior
+            </div>
+        </div>
+
+        <!-- Saldo em Poupanças (Reserva de Emergência Simples) -->
+        <div class="glass-panel p-6 stats-card border-l-4 border-purple-500">
+            <div class="flex items-center justify-between">
+                <span class="card-title text-gray-800 dark:text-gray-200">Reserva de Emergência</span>
+                <i class="fas fa-shield-alt text-3xl text-purple-500"></i>
+            </div>
+            <p id="saldoPoupancas" class="card-value"></p>
+            <div class="mt-4 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                <i class="fas fa-target mr-1"></i>
+                <span id="metaReserva" class="ml-1"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos Principais - Cada gráfico em seu próprio glass-panel -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Gráfico de Receitas vs Despesas Mensais -->
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-chart-bar mr-2 text-blue-500"></i>
+                Receitas vs Despesas Mensais
+            </h2>
+            <div class="chart-container">
+                <canvas id="transacoesMensaisChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico de Saldo Acumulado -->
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-chart-area mr-2 text-indigo-500"></i>
+                Saldo Acumulado
+            </h2>
+            <div class="chart-container">
+                <canvas id="saldoAcumuladoChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Gráfico de Sazonalidade -->
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-wave-square mr-2 text-purple-500"></i>
+                Análise de Sazonalidade
+            </h2>
+            <div class="chart-container">
+                <canvas id="sazonalidadeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico de Projeção Futura -->
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-rocket mr-2 text-pink-500"></i>
+                Projeção Futura de Saldo
+            </h2>
+            <div class="chart-container">
+                <canvas id="projecaoSaldoChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico de Despesas por Categoria -->
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-tags mr-2 text-orange-500"></i>
+                Despesas por Categoria
+            </h2>
+            <div class="chart-container">
+                <canvas id="saidasCategoriaChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico de Receitas por Categoria (ou Forma de Recebimento) -->
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-hand-holding-usd mr-2 text-teal-500"></i>
+                Receitas por Categoria
+            </h2>
+            <div class="chart-container">
+                <canvas id="entradasCategoriaChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Gráfico de Saldos por Conta Bancária -->
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-university mr-2 text-blue-400"></i>
+                Saldos por Conta Bancária
+            </h2>
+            <div class="chart-container">
+                <canvas id="saldoContasChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico de Despesas Fixas vs Variáveis -->
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-receipt mr-2 text-yellow-500"></i>
+                Despesas Fixas vs Variáveis
+            </h2>
+            <div class="chart-container">
+                <canvas id="despesasFixasVariaveisChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico de Status de Pagamentos -->
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-check-circle mr-2 text-green-500"></i>
+                Status de Pagamentos
+            </h2>
+            <div class="chart-container">
+                <canvas id="statusPagamentosChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Gráfico de Sugestão de Alocação de Investimentos -->
+        <div class="glass-panel p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+                <i class="fas fa-chart-pie mr-2 text-gray-500"></i>
+                Sugestão de Alocação de Investimentos
+            </h2>
+            <div class="chart-container">
+                <canvas id="alocacaoInvestimentosChart"></canvas>
+            </div>
+            <p id="sugestaoInvestimentos" class="mt-4 text-sm text-gray-600 italic text-center dark:text-gray-400">
+                <strong>Sugestão:</strong> Foque em construir reserva de emergência primeiro.
+            </p>
+        </div>
+    </div>
+
+    <!-- Seção de Reserva de Emergência Detalhada - Usando o padrão glass-panel -->
+    <div class="glass-panel p-6 mt-4 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <span class="card-title text-gray-800 dark:text-gray-200">Reserva de Emergência</span>
+            <i class="fas fa-shield-alt text-3xl text-purple-500"></i>
+        </div>
+        
+        <!-- Seletor de Meses da Meta -->
+        <div class="mb-8 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg w-full md:w-2/4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <i class="fas fa-sliders-h mr-1 text-purple-600"></i>Meses de despesa para meta:
+            </label>
+            <select id="meses-meta-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="3">3 meses</option>
+                <option value="6" selected>6 meses</option>
+                <option value="9">9 meses</option>
+                <option value="12">12 meses</option>
+            </select>
+            <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                Quantos meses de despesa você quer como reserva?
+            </div>
+        </div>
+        
+        <!-- Meta Ideal -->
+        <div class="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-sm font-medium">Meta Ideal (6 meses):</span>
+                <span id="reservaEmergenciaIdeal" class="text-lg font-bold text-blue-600"></span>
+            </div>
+            <div class="text-xs text-gray-600 dark:text-gray-400">
+                Média: <span id="despesaMensalMedia"></span>/mês
+            </div>
+        </div>
+        
+        <!-- Saldo Atual em Poupanças -->
+        <div class="mb-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-medium">Saldo em Poupanças:</span>
+                <span id="saldoAtualPoupancas" class="text-lg font-bold"></span>
+            </div>
+        </div>
+        
+        <!-- Diferença -->
+        <div class="mb-3 p-3 rounded-lg" id="diferencaReservaPanel">
+            <div class="flex justify-between items-center">
+                <span id="diferencaLabel" class="text-sm font-medium"></span>
+                <span id="valorFaltante" class="text-lg font-bold"></span>
+            </div>
+        </div>
+        
+        <!-- Barra de Progresso -->
+        <div class="mb-3">
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-sm font-medium dark:text-gray-300">Progresso:</span>
+                <span id="percentualAtingido" class="text-sm font-bold"></span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div id="progressBar" class="h-2 rounded-full"></div>
+            </div>
+        </div>
+        
+        <!-- Projeção de Tempo -->
+        <div id="projecaoTempoPanel" class="mb-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div class="text-center">
+                <span class="text-sm font-medium dark:text-gray-300">
+                    <i class="fas fa-clock mr-1 text-gray-600 dark:text-gray-400"></i>Previsão para atingir:
+                </span>
+                <div id="tempoProjecao" class="mt-1 text-md font-bold dark:text-white"></div>
+                <div class="text-xs text-gray-600 mt-1 dark:text-gray-400">
+                    Baseado na sua poupança mensal estimada
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status -->
+        <div id="statusReservaPanel" class="text-center p-2 rounded-lg">
+            <i id="statusIcon" class="fas mr-1"></i>
+            <span id="statusText" class="text-lg font-bold"></span>
+        </div>
+    </div>
+
+    <!-- Indicadores de Saúde Financeira -->
+    <div class="glass-panel p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+            <i class="fas fa-heartbeat mr-2 text-red-500"></i>
+            Indicadores de Saúde Financeira
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow-sm">
+                <h3 class="font-semibold text-lg dark:text-gray-200">Liquidez Corrente</h3>
+                <p class="text-3xl font-bold text-blue-600" id="liquidezCorrente">0%</p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow-sm">
+                <h3 class="font-semibold text-lg dark:text-gray-200">Margem de Segurança</h3>
+                <p class="text-3xl font-bold text-green-600" id="margemSeguranca">0%</p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow-sm">
+                <h3 class="font-semibold text-lg dark:text-gray-200">Endividamento</h3>
+                <p class="text-3xl font-bold text-red-600" id="endividamento">0%</p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow-sm">
+                <h3 class="font-semibold text-lg dark:text-gray-200">Poupança Mensal Estimada</h3>
+                <p class="text-3xl font-bold text-purple-600" id="poupancaMensal">R$ 0,00</p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow-sm">
+                <h3 class="font-semibold text-lg dark:text-gray-200">Reserva de Emergência Ideal</h3>
+                <p class="text-3xl font-bold text-orange-600" id="reservaEmergenciaIdealIndicador">R$ 0,00</p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow-sm">
+                <h3 class="font-semibold text-lg dark:text-gray-200">Nível de Risco</h3>
+                <p class="text-3xl font-bold text-yellow-600" id="nivelRisco">Baixo</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análise Comportamental -->
+    <div class="glass-panel p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+            <i class="fas fa-brain mr-2 text-green-500"></i>
+            Análise Comportamental
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow-sm">
+                <h3 class="font-semibold text-xl mb-2 dark:text-gray-200 flex items-center">
+                    <i class="fas fa-calendar-day mr-2 text-blue-500"></i>
+                    Gastos por Dia da Semana
+                </h3>
+                <div class="chart-container">
+                    <canvas id="gastosPorDiaChart"></canvas>
+                </div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow-sm">
+                <h3 class="font-semibold text-xl mb-2 dark:text-gray-200 flex items-center">
+                    <i class="fas fa-chart-pie mr-2 text-purple-500"></i>
+                    Gastos por Tipo (Comportamental)
+                </h3>
+                <div class="chart-container">
+                    <canvas id="categoriasComportamentoChart"></canvas>
+                </div>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow-sm">
+                <h3 class="font-semibold text-xl mb-2 dark:text-gray-200 flex items-center">
+                    <i class="fas fa-clock mr-2 text-teal-500"></i>
+                    Gastos por Hora do Dia
+                </h3>
+                <div class="chart-container">
+                    <canvas id="gastosPorHoraChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulações de Cenários -->
+    <div class="glass-panel p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+            <i class="fas fa-calculator mr-2 text-blue-600"></i>
+            Simulações de Cenários
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow">
+                <h4 class="font-semibold dark:text-gray-200">Aumento de 10% nas Despesas:</h4>
+                <p class="text-lg text-red-600 font-bold" id="aumentoDespesas">R$ 0,00</p>
+            </div>
+            <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg shadow">
+                <h4 class="font-semibold dark:text-gray-200">Redução de 10% nas Despesas:</h4>
+                <p class="text-lg text-green-600 font-bold" id="reducaoDespesas">R$ 0,00</p>
+            </div>
+            <div class="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg shadow">
+                <h4 class="font-semibold dark:text-gray-200">Aumento de 10% nas Receitas:</h4>
+                <p class="text-lg text-green-600 font-bold" id="aumentoReceitas">R$ 0,00</p>
+            </div>
+            <div class="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg shadow">
+                <h4 class="font-semibold dark:text-gray-200">Redução de 10% nas Receitas:</h4>
+                <p class="text-lg text-red-600 font-bold" id="reducaoReceitas">R$ 0,00</p>
+            </div>
+            <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg shadow">
+                <h4 class="font-semibold dark:text-gray-200">Impacto da Inflação (5%):</h4>
+                <p class="text-lg text-red-600 font-bold" id="impactoInflacao">R$ 0,00</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análise de Riscos -->
+    <div class="glass-panel p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+            <i class="fas fa-exclamation-triangle mr-2 text-red-600"></i>
+            Análise de Riscos
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
+            <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg shadow-sm">
+                <h3 class="font-semibold text-lg dark:text-gray-200">Concentração de Risco de Renda</h3>
+                <p class="text-3xl font-bold text-red-600" id="concentracaoRisco">0%</p>
+            </div>
+            <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg shadow-sm">
+                <h3 class="font-semibold text-lg dark:text-gray-200">Reserva de Emergência Coberta</h3>
+                <p class="text-3xl font-bold text-green-600" id="reservaIdealCoberta">R$ 0,00 / R$ 0,00</p>
+            </div>
+        </div>
+        <p class="mt-4 text-sm text-gray-600 italic text-center dark:text-gray-400">
+            O nível de risco da sua renda é <strong id="nivelRiscoTexto">Baixo</strong>.
+        </p>
+    </div>
+
+    <!-- Tabela de Últimas Transações - Seguindo o padrão de tabela do conta_list -->
+    <div class="glass-panel overflow-hidden">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
+                <i class="fas fa-history mr-3 text-indigo-600"></i>
+                Últimas Transações
+            </h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-indigo-50 dark:bg-indigo-900">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">
+                            Data
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">
+                            Descrição
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">
+                            Valor
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">
+                            Categoria
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">
+                            Conta
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="ultimasTransacoesTable">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Funções globais para formatar moeda e porcentagem
+    function formatCurrency(value) {
+        if (value === null || value === undefined) return 'R$ 0,00';
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
+    }
+
+    function formatPercent(value) {
+        if (value === null || value === undefined) return '0%';
+        return `${value.toFixed(1)}%`;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            const contextData = JSON.parse('{{ dados_graficos_json|escapejs }}');
+            console.log('Dados carregados:', contextData);
+            
+            // Preencher os cards principais primeiro
+            fillMainCards(contextData);
+            
+            // Aguardar um pouco para garantir que todos os elementos estejam renderizados
+            setTimeout(function() {
+                initializeCharts(contextData);
+            }, 100);
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error);
+        }
+    });
+
+    function fillMainCards(contextData) {
+        // Preencher os cards principais
+        if (document.getElementById('saldoGeral')) {
+            document.getElementById('saldoGeral').textContent = formatCurrency(contextData.saldo_geral);
+            const saldoGeralEl = document.getElementById('saldoGeral');
+            if (saldoGeralEl) {
+                if (contextData.saldo_geral >= 0) {
+                    saldoGeralEl.classList.add('text-green-600');
+                    saldoGeralEl.classList.remove('text-red-600');
+                } else {
+                    saldoGeralEl.classList.add('text-red-600');
+                    saldoGeralEl.classList.remove('text-green-600');
+                }
+            }
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // Placeholder de dados - Em um ambiente Django, estes seriam preenchidos dinamicamente
-            // pelo contexto da view usando json.dumps
-            const contextData = {
-                saldo_geral: 6700.00,
-                entradas_mes: 8066.00,
-                saidas_mes: 1306.23,
-                variacao_receitas: 25.50, // Exemplo de variação
-                variacao_despesas: -10.20, // Exemplo de variação
-                despesas_fixas: 2000.00,
-                despesas_variaveis: 500.00,
-                pagos_total: 1000.00,
-                pendentes_total: 300.00,
-                ultimas_transacoes: [
-                    { data: '2025-08-15', nome: 'Salário', valor: 8066.00, tipo: 'Entrada' },
-                    { data: '2025-08-10', nome: 'Conta de Luz', valor: 250.00, tipo: 'Saída' },
-                    { data: '2025-08-05', nome: 'Supermercado', valor: 450.00, tipo: 'Saída' }
-                ],
-                
-                // Dados para gráficos (simulados como se tivessem vindo de json.dumps)
-                meses_labels: ["Fev/2025", "Mar/2025", "Abr/2025", "Mai/2025", "Jun/2025", "Jul/2025", "Ago/2025"],
-                receitas_mensais_data: [0, 0, 0, 0, 0, 0, 8066.00],
-                despesas_mensais_data: [0, 0, 0, 0, 0, 0, 1306.23],
-                saldo_acumulado_data: [0, 0, 0, 0, 0, 0, 6759.77],
-                saldo_mensal_data: [0, 0, 0, 0, 0, 0, 6759.77],
-                categorias_labels: ["Alimentação", "Moradia", "Transporte", "Lazer"],
-                categorias_data: [500, 1500, 300, 200],
-                formas_pagamento_labels: ["Cartão de Crédito", "PIX", "Dinheiro"],
-                formas_pagamento_data: [1000, 200, 100],
-                sazonalidade_labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
-                sazonalidade_values: [0, 0, 0, 0, 0, 0, 0, 6759.77, 0, 0, 0, 0], // Exemplo
-                projecao_labels: ["Mês 1", "Mês 2", "Mês 3", "Mês 4", "Mês 5", "Mês 6"],
-                projecao_receitas: [7500, 7800, 8100, 8400, 8700, 9000],
-                projecao_despesas: [1400, 1450, 1500, 1550, 1600, 1650],
-                projecao_saldo: [6100, 6350, 6600, 6850, 7100, 7350],
-                otimizacao_investimentos: {
-                    sugestao: 'Considere diversificar com investimentos de maior risco e retorno',
-                    alocacao_labels: ["Reserva Emergencial", "Renda Fixa", "Renda Variável"],
-                    alocacao_values: [30, 40, 30]
-                },
-                indicadores: {
-                    liquidez_corrente: 500.00, // %
-                    margem_seguranca: 80.00, // %
-                    endividamento: 20.00, // %
-                    poupanca_mensal: 563.31, // R$
-                    reserva_emergencia: 15000.00 // R$
-                },
-                analise_comportamental: {
-                    gastos_por_dia: { 'Seg': 100, 'Ter': 50, 'Qua': 200, 'Qui': 150, 'Sex': 300, 'Sáb': 400, 'Dom': 250 },
-                    categorias_comportamento: { 'essenciais': 1200, 'supérfluos': 400, 'investimentos': 500 }
-                },
-                simulacoes: {
-                    aumento_10_despesas: 1436.85,
-                    reducao_10_despesas: 1175.60,
-                    aumento_10_receitas: 8872.60,
-                    reducao_10_receitas: 7259.40,
-                    impacto_inflacao_5: 1371.54
-                },
-                analise_riscos: {
-                    concentracao_risco: 75.00, // %
-                    reserva_ideal: 7837.38, // R$
-                    nivel_risco: 'Alto'
-                }
-            };
+        if (document.getElementById('entradasMes')) {
+            document.getElementById('entradasMes').textContent = formatCurrency(contextData.entradas_mes);
+        }
 
-            // Preenchimento dos cards com os dados simulados
-            document.getElementById('saldoGeral').innerText = formatCurrency(contextData.saldo_geral);
-            document.getElementById('entradasMes').innerText = formatCurrency(contextData.entradas_mes);
-            document.getElementById('saidasMes').innerText = formatCurrency(contextData.saidas_mes);
-            document.getElementById('variacaoReceitas').innerText = `${contextData.variacao_receitas}%`;
-            document.getElementById('variacaoDespesas').innerText = `${contextData.variacao_despesas}%`;
-            document.getElementById('reservaEmergencia').innerText = formatCurrency(contextData.indicadores.reserva_emergencia); // Usando valor de indicadores
+        if (document.getElementById('variacaoReceitas')) {
+            const variacaoReceitasEl = document.getElementById('variacaoReceitas');
+            variacaoReceitasEl.textContent = `${contextData.variacao_receitas >= 0 ? '+' : ''}${formatPercent(contextData.variacao_receitas)}`;
+            variacaoReceitasEl.className = 'font-medium ' + (contextData.variacao_receitas >= 0 ? 'text-green-600' : 'text-red-600');
+        }
 
-            // Preenchimento dos indicadores de saúde financeira
-            document.getElementById('liquidezCorrente').innerText = `${contextData.indicadores.liquidez_corrente}%`;
-            document.getElementById('margemSeguranca').innerText = `${contextData.indicadores.margem_seguranca}%`;
-            document.getElementById('endividamento').innerText = `${contextData.indicadores.endividamento}%`;
-            document.getElementById('poupancaMensal').innerText = formatCurrency(contextData.indicadores.poupanca_mensal);
-            document.getElementById('reservaEmergenciaIdeal').innerText = formatCurrency(contextData.analise_riscos.reserva_ideal);
-            document.getElementById('nivelRisco').innerText = contextData.analise_riscos.nivel_risco;
+        if (document.getElementById('saidasMes')) {
+            document.getElementById('saidasMes').textContent = formatCurrency(contextData.saidas_mes);
+        }
 
-            // Preenchimento das simulações de cenários
-            document.getElementById('aumentoDespesas').innerText = formatCurrency(contextData.simulacoes.aumento_10_despesas);
-            document.getElementById('reducaoDespesas').innerText = formatCurrency(contextData.simulacoes.reducao_10_despesas);
-            document.getElementById('aumentoReceitas').innerText = formatCurrency(contextData.simulacoes.aumento_10_receitas);
-            document.getElementById('reducaoReceitas').innerText = formatCurrency(contextData.simulacoes.reducao_10_receitas);
-            document.getElementById('impactoInflacao').innerText = formatCurrency(contextData.simulacoes.impacto_inflacao_5);
+        if (document.getElementById('variacaoDespesas')) {
+            const variacaoDespesasEl = document.getElementById('variacaoDespesas');
+            variacaoDespesasEl.textContent = `${contextData.variacao_despesas >= 0 ? '+' : ''}${formatPercent(contextData.variacao_despesas)}`;
+            variacaoDespesasEl.className = 'font-medium ' + (contextData.variacao_despesas <= 0 ? 'text-green-600' : 'text-red-600');
+        }
+    }
 
-            // Preenchimento de análise de riscos
-            document.getElementById('concentracaoRisco').innerText = `${contextData.analise_riscos.concentracao_risco}%`;
-            document.getElementById('reservaIdealCoberta').innerText = `${formatCurrency(contextData.reservaEmergencia)} / ${formatCurrency(contextData.analise_riscos.reserva_ideal)}`;
-            document.getElementById('nivelRiscoTexto').innerText = contextData.analise_riscos.nivel_risco;
-            document.getElementById('sugestaoInvestimentos').innerText = contextData.otimizacao_investimentos.sugestao;
-
-
-            // Configurações padrão para todos os gráficos
-            const chartOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            font: {
-                                size: 12
-                            }
-                        }
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        titleFont: {
-                            size: 14,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 12
-                        },
-                        padding: 10,
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        cornerRadius: 8
-                    },
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            font: { size: 10 }
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            font: { size: 10 }
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        }
-                    }
-                }
-            };
-
-            // Gráfico 1: Receitas vs Despesas Mensais
-            const receitasDespesasCtx = document.getElementById('receitasDespesasChart').getContext('2d');
-            new Chart(receitasDespesasCtx, {
-                type: 'bar',
-                data: {
-                    labels: contextData.meses_labels,
-                    datasets: [{
-                        label: 'Receitas',
-                        data: contextData.receitas_mensais_data,
-                        backgroundColor: 'rgba(59, 130, 246, 0.8)', // Azul
-                        borderRadius: 5
-                    }, {
-                        label: 'Despesas',
-                        data: contextData.despesas_mensais_data,
-                        backgroundColor: 'rgba(239, 68, 68, 0.8)', // Vermelho
-                        borderRadius: 5
-                    }]
-                },
-                options: chartOptions
-            });
-
-            // Gráfico 2: Saldo Acumulado
-            const saldoAcumuladoCtx = document.getElementById('saldoAcumuladoChart').getContext('2d');
-            new Chart(saldoAcumuladoCtx, {
-                type: 'line',
-                data: {
-                    labels: contextData.meses_labels,
-                    datasets: [{
-                        label: 'Saldo Acumulado',
-                        data: contextData.saldo_acumulado_data,
-                        borderColor: '#10b981', // Verde
-                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                        fill: true,
-                        tension: 0.3,
-                        pointBackgroundColor: '#10b981',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#10b981'
-                    }]
-                },
-                options: {
-                    ...chartOptions,
-                    scales: {
-                        y: { beginAtZero: false }
-                    }
+    function initializeCharts(contextData) {
+        // Verificar se os elementos canvas existem antes de tentar criar os gráficos
+        function checkCanvasElements() {
+            const canvasIds = [
+                'transacoesMensaisChart', 'saldoAcumuladoChart', 'sazonalidadeChart',
+                'projecaoSaldoChart', 'saidasCategoriaChart', 'entradasCategoriaChart',
+                'saldoContasChart', 'despesasFixasVariaveisChart', 'statusPagamentosChart',
+                'gastosPorDiaChart', 'categoriasComportamentoChart', 'gastosPorHoraChart',
+                'alocacaoInvestimentosChart'
+            ];
+            
+            let allExist = true;
+            canvasIds.forEach(id => {
+                if (!document.getElementById(id)) {
+                    console.error(`Elemento não encontrado: ${id}`);
+                    allExist = false;
                 }
             });
+            
+            return allExist;
+        }
 
-            // Gráfico de Sazonalidade
-            const sazonalidadeCtx = document.getElementById('sazonalidadeChart').getContext('2d');
-            new Chart(sazonalidadeCtx, {
-                type: 'line',
-                data: {
-                    labels: contextData.sazonalidade_labels,
-                    datasets: [{
-                        label: 'Saldo Mensal',
-                        data: contextData.sazonalidade_values,
-                        borderColor: '#6366f1', // Roxo
-                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                        tension: 0.3,
-                        fill: true,
-                        pointBackgroundColor: '#6366f1',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#6366f1'
-                    }]
-                },
-                options: {
-                    ...chartOptions,
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
-
-            // Gráfico de Projeção Futura
-            const projecaoFuturaCtx = document.getElementById('projecaoFuturaChart').getContext('2d');
-            new Chart(projecaoFuturaCtx, {
-                type: 'line',
-                data: {
-                    labels: contextData.projecao_labels,
-                    datasets: [
-                        {
-                            label: 'Projeção de Receitas',
-                            data: contextData.projecao_receitas,
-                            borderColor: '#22c55e', // Verde claro
-                            tension: 0.3,
-                            fill: false,
-                            borderDash: [5, 5],
-                            pointBackgroundColor: '#22c55e',
-                            pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: '#22c55e'
-                        },
-                        {
-                            label: 'Projeção de Despesas',
-                            data: contextData.projecao_despesas,
-                            borderColor: '#ef4444', // Vermelho
-                            tension: 0.3,
-                            fill: false,
-                            borderDash: [5, 5],
-                            pointBackgroundColor: '#ef4444',
-                            pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: '#ef4444'
-                        },
-                        {
-                            label: 'Projeção de Saldo',
-                            data: contextData.projecao_saldo,
-                            borderColor: '#3b82f6', // Azul
-                            tension: 0.3,
-                            fill: false,
-                            borderDash: [5, 5],
-                            pointBackgroundColor: '#3b82f6',
-                            pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: '#3b82f6'
-                        }
-                    ]
-                },
-                options: {
-                    ...chartOptions,
-                    scales: { y: { beginAtZero: false } }
-                }
-            });
-
-            // Gráfico de Categorias de Gastos
-            const categoriasCtx = document.getElementById('categoriasChart').getContext('2d');
-            new Chart(categoriasCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: contextData.categorias_labels,
-                    datasets: [{
-                        data: contextData.categorias_data,
-                        backgroundColor: [
-                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b', '#22c55e', '#7dd3fc', '#a855f7', '#ec4899', '#fcd34d'
-                        ],
-                        hoverOffset: 4,
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    ...chartOptions,
-                    scales: {}, // Remover escalas para gráfico de rosca
-                    plugins: {
-                        ...chartOptions.plugins,
-                        legend: { position: 'right' },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.raw !== null) {
-                                        label += formatCurrency(context.raw);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Gráfico de Forma de Pagamento
-            const formasPagamentoCtx = document.getElementById('formasPagamentoChart').getContext('2d');
-            new Chart(formasPagamentoCtx, {
-                type: 'pie',
-                data: {
-                    labels: contextData.formas_pagamento_labels,
-                    datasets: [{
-                        data: contextData.formas_pagamento_data,
-                        backgroundColor: [
-                            '#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#64748b'
-                        ],
-                        hoverOffset: 4,
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    ...chartOptions,
-                    scales: {},
-                    plugins: {
-                        ...chartOptions.plugins,
-                        legend: { position: 'right' },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.raw !== null) {
-                                        label += formatCurrency(context.raw);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Gráfico de Despesas Fixas vs Variáveis
-            const despesasFixasVariaveisCtx = document.getElementById('despesasFixasVariaveisChart').getContext('2d');
-            new Chart(despesasFixasVariaveisCtx, {
-                type: 'pie',
-                data: {
-                    labels: ['Despesas Fixas', 'Despesas Variáveis'],
-                    datasets: [{
-                        data: [contextData.despesas_fixas, contextData.despesas_variaveis],
-                        backgroundColor: [
-                            '#a855f7', // Roxo
-                            '#fcd34d'  // Amarelo
-                        ],
-                        hoverOffset: 4,
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    ...chartOptions,
-                    scales: {},
-                    plugins: {
-                        ...chartOptions.plugins,
-                        legend: { position: 'right' },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.raw !== null) {
-                                        label += formatCurrency(context.raw);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Gráfico de Status de Pagamentos
-            const statusPagamentosCtx = document.getElementById('statusPagamentosChart').getContext('2d');
-            new Chart(statusPagamentosCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Pagos', 'Pendentes'],
-                    datasets: [{
-                        data: [contextData.pagos_total, contextData.pendentes_total],
-                        backgroundColor: [
-                            '#10b981', // Verde
-                            '#f59e0b'  // Laranja
-                        ],
-                        hoverOffset: 4,
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    ...chartOptions,
-                    scales: {},
-                    plugins: {
-                        ...chartOptions.plugins,
-                        legend: { position: 'right' },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.raw !== null) {
-                                        label += formatCurrency(context.raw);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Gráfico de Gastos por Dia da Semana
-            const gastosPorDiaCtx = document.getElementById('gastosPorDiaChart').getContext('2d');
-            const gastosPorDiaLabels = Object.keys(contextData.analise_comportamental.gastos_por_dia);
-            const gastosPorDiaValues = Object.values(contextData.analise_comportamental.gastos_por_dia);
-            new Chart(gastosPorDiaCtx, {
-                type: 'bar',
-                data: {
-                    labels: gastosPorDiaLabels,
-                    datasets: [{
-                        label: 'Gastos',
-                        data: gastosPorDiaValues,
-                        backgroundColor: 'rgba(99, 102, 241, 0.8)',
-                        borderRadius: 5
-                    }]
-                },
-                options: chartOptions
-            });
-
-            // Gráfico de Categorias Comportamentais
-            const categoriasComportamentoCtx = document.getElementById('categoriasComportamentoChart').getContext('2d');
-            const catComportamentoLabels = Object.keys(contextData.analise_comportamental.categorias_comportamento);
-            const catComportamentoValues = Object.values(contextData.analise_comportamental.categorias_comportamento);
-            new Chart(categoriasComportamentoCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: catComportamentoLabels,
-                    datasets: [{
-                        data: catComportamentoValues,
-                        backgroundColor: [
-                            '#3b82f6', // Essenciais
-                            '#f59e0b', // Supérfluos
-                            '#10b981'  // Investimentos
-                        ],
-                        hoverOffset: 4,
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    ...chartOptions,
-                    scales: {},
-                    plugins: {
-                        ...chartOptions.plugins,
-                        legend: { position: 'right' },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.raw !== null) {
-                                        label += formatCurrency(context.raw);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-
-            // Gráfico de Alocação de Investimentos
-            const alocacaoInvestimentosCtx = document.getElementById('alocacaoInvestimentosChart').getContext('2d');
-            new Chart(alocacaoInvestimentosCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: contextData.otimizacao_investimentos.alocacao_labels,
-                    datasets: [{
-                        data: contextData.otimizacao_investimentos.alocacao_values,
-                        backgroundColor: [
-                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'
-                        ],
-                        borderWidth: 1,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    ...chartOptions,
-                    scales: {},
-                    plugins: {
-                        ...chartOptions.plugins,
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.label + ': ' + context.raw + '%';
-                                }
-                            }
-                        },
-                        legend: { position: 'right' }
-                    }
-                }
-            });
-
-            // Filtro de período (exemplo de funcionalidade básica para o HTML autônomo)
-            document.getElementById('periodo-select').addEventListener('change', function() {
-                if (this.value === 'custom') {
-                    alert('Selecione as datas no calendário que será exibido (funcionalidade não implementada neste HTML autônomo).');
+        if (!checkCanvasElements()) {
+            console.error('Alguns elementos canvas não foram encontrados. Verificando novamente em 500ms...');
+            setTimeout(function() {
+                if (checkCanvasElements()) {
+                    createAllCharts(contextData);
                 } else {
-                    console.log('Período selecionado:', this.value);
-                    // Em um ambiente Django, você redirecionaria para a URL com o parâmetro:
-                    // window.location.href = '?periodo=' + this.value;
+                    console.error('Ainda não foi possível encontrar todos os elementos canvas.');
                 }
-            });
+            }, 500);
+            return;
+        }
 
-            // Preenchimento da tabela de Últimas Transações
-            const ultimasTransacoesTable = document.getElementById('ultimasTransacoesTable');
-            ultimasTransacoesTable.innerHTML = ''; // Limpa o conteúdo existente
+        createAllCharts(contextData);
+    }
 
-            contextData.ultimas_transacoes.forEach(transacao => {
-                const row = document.createElement('tr');
-                row.className = 'border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150';
+    function createAllCharts(contextData) {
+        console.log('Criando todos os gráficos...');
+        
+        // Configuração comum para os gráficos
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label || context.label}: ${formatCurrency(context.raw)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatCurrency(value);
+                        }
+                    }
+                }
+            }
+        };
+
+        // ===== GRÁFICO 1: RECEITAS VS DESPESAS MENSAIS =====
+        if (document.getElementById('transacoesMensaisChart') && contextData.meses_labels) {
+            try {
+                new Chart(document.getElementById('transacoesMensaisChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: contextData.meses_labels,
+                        datasets: [
+                            {
+                                label: 'Receitas',
+                                data: contextData.receitas_mensais_data,
+                                backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                                borderRadius: 5
+                            },
+                            {
+                                label: 'Despesas',
+                                data: contextData.despesas_mensais_data,
+                                backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                                borderRadius: 5
+                            }
+                        ]
+                    },
+                    options: chartOptions
+                });
+                console.log('Gráfico 1 criado: Receitas vs Despesas');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 1:', error);
+            }
+        }
+
+        // ===== GRÁFICO 2: SALDO ACUMULADO =====
+        if (document.getElementById('saldoAcumuladoChart') && contextData.meses_labels) {
+            try {
+                new Chart(document.getElementById('saldoAcumuladoChart'), {
+                    type: 'line',
+                    data: {
+                        labels: contextData.meses_labels,
+                        datasets: [{
+                            label: 'Saldo Acumulado',
+                            data: contextData.saldo_acumulado_data,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: chartOptions
+                });
+                console.log('Gráfico 2 criado: Saldo Acumulado');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 2:', error);
+            }
+        }
+
+        // ===== GRÁFICO 3: SAZONALIDADE =====
+        if (document.getElementById('sazonalidadeChart') && contextData.sazonalidade_labels) {
+            try {
+                new Chart(document.getElementById('sazonalidadeChart'), {
+                    type: 'line',
+                    data: {
+                        labels: contextData.sazonalidade_labels,
+                        datasets: [{
+                            label: 'Saldo Líquido Mensal',
+                            data: contextData.sazonalidade_values,
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: chartOptions
+                });
+                console.log('Gráfico 3 criado: Sazonalidade');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 3:', error);
+            }
+        }
+
+        // ===== GRÁFICO 4: PROJEÇÃO FUTURA =====
+        if (document.getElementById('projecaoSaldoChart') && contextData.projecao_labels) {
+            try {
+                new Chart(document.getElementById('projecaoSaldoChart'), {
+                    type: 'line',
+                    data: {
+                        labels: contextData.projecao_labels,
+                        datasets: [
+                            {
+                                label: 'Projeção Receitas',
+                                data: contextData.projecao_receitas,
+                                borderColor: '#22c55e',
+                                borderDash: [5, 5],
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Projeção Despesas',
+                                data: contextData.projecao_despesas,
+                                borderColor: '#ef4444',
+                                borderDash: [5, 5],
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Projeção Saldo',
+                                data: contextData.projecao_saldo,
+                                borderColor: '#3b82f6',
+                                tension: 0.3,
+                                fill: true,
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                            }
+                        ]
+                    },
+                    options: chartOptions
+                });
+                console.log('Gráfico 4 criado: Projeção Futura');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 4:', error);
+            }
+        }
+
+        // ===== GRÁFICO 5: DESPESAS POR CATEGORIA =====
+        if (document.getElementById('saidasCategoriaChart') && contextData.categorias_despesas_labels) {
+            try {
+                new Chart(document.getElementById('saidasCategoriaChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: contextData.categorias_despesas_labels,
+                        datasets: [{
+                            data: contextData.categorias_despesas_data,
+                            backgroundColor: [
+                                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#a855f7',
+                                '#6b7280', '#dc2626', '#d946ef', '#fbbf24', '#2dd4bf', '#a3e635'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'right'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${formatCurrency(context.raw)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('Gráfico 5 criado: Despesas por Categoria');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 5:', error);
+            }
+        }
+
+        // ===== GRÁFICO 6: RECEITAS POR CATEGORIA =====
+        if (document.getElementById('entradasCategoriaChart') && contextData.categorias_receitas_labels) {
+            try {
+                new Chart(document.getElementById('entradasCategoriaChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: contextData.categorias_receitas_labels,
+                        datasets: [{
+                            data: contextData.categorias_receitas_values,
+                            backgroundColor: [
+                                '#22c55e', '#3b82f6', '#f59e0b', '#10b981', '#6b7280', '#d946ef'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'right'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${formatCurrency(context.raw)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('Gráfico 6 criado: Receitas por Categoria');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 6:', error);
+            }
+        }
+
+        // ===== GRÁFICO 7: SALDOS POR CONTA BANCÁRIA =====
+        if (document.getElementById('saldoContasChart') && contextData.saldo_contas_labels) {
+            try {
+                new Chart(document.getElementById('saldoContasChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: contextData.saldo_contas_labels,
+                        datasets: [{
+                            label: 'Saldo',
+                            data: contextData.saldo_contas_values,
+                            backgroundColor: contextData.saldo_contas_values.map(value => 
+                                value >= 0 ? 'rgba(59, 130, 246, 0.8)' : 'rgba(239, 68, 68, 0.8)'),
+                            borderRadius: 5
+                        }]
+                    },
+                    options: chartOptions
+                });
+                console.log('Gráfico 7 criado: Saldos por Conta');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 7:', error);
+            }
+        }
+
+        // ===== GRÁFICO 8: DESPESAS FIXAS VS VARIÁVEIS =====
+        if (document.getElementById('despesasFixasVariaveisChart')) {
+            try {
+                new Chart(document.getElementById('despesasFixasVariaveisChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['Despesas Fixas', 'Despesas Variáveis'],
+                        datasets: [{
+                            data: [contextData.despesas_fixas, contextData.despesas_variaveis],
+                            backgroundColor: ['#a855f7', '#fcd34d']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'right'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${formatCurrency(context.raw)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('Gráfico 8 criado: Fixas vs Variáveis');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 8:', error);
+            }
+        }
+
+        // ===== GRÁFICO 9: STATUS DE PAGAMENTOS =====
+        if (document.getElementById('statusPagamentosChart')) {
+            try {
+                new Chart(document.getElementById('statusPagamentosChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pagos', 'Pendentes'],
+                        datasets: [{
+                            data: [contextData.pagos_total, contextData.pendentes_total],
+                            backgroundColor: ['#10b981', '#f59e0b']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'right'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${formatCurrency(context.raw)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('Gráfico 9 criado: Status de Pagamentos');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 9:', error);
+            }
+        }
+
+        // ===== GRÁFICO 10: GASTOS POR DIA DA SEMANA =====
+        if (document.getElementById('gastosPorDiaChart') && contextData.analise_comportamental) {
+            try {
+                const gastosPorDiaLabels = Object.keys(contextData.analise_comportamental.gastos_por_dia);
+                const gastosPorDiaValues = Object.values(contextData.analise_comportamental.gastos_por_dia);
                 
-                const valorClass = transacao.tipo === 'Entrada' ? 'text-green-600' : 'text-red-600';
-                const tipoSpan = transacao.tipo === 'Entrada' ? 
-                    `<span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
-                        <span aria-hidden="true" class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
-                        <span class="relative">Entrada</span>
-                    </span>` :
-                    `<span class="relative inline-block px-3 py-1 font-semibold text-red-900 leading-tight">
-                        <span aria-hidden="true" class="absolute inset-0 bg-red-200 opacity-50 rounded-full"></span>
-                        <span class="relative">Saída</span>
-                    </span>`;
+                new Chart(document.getElementById('gastosPorDiaChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: gastosPorDiaLabels,
+                        datasets: [{
+                            label: 'Gastos por Dia',
+                            data: gastosPorDiaValues,
+                            backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                            borderRadius: 5
+                        }]
+                    },
+                    options: chartOptions
+                });
+                console.log('Gráfico 10 criado: Gastos por Dia');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 10:', error);
+            }
+        }
 
-                row.innerHTML = `
-                    <td class="py-3 px-4 whitespace-nowrap">${transacao.data}</td>
-                    <td class="py-3 px-4 whitespace-nowrap">
-                        <div class="font-medium text-gray-900">${transacao.nome}</div>
-                    </td>
-                    <td class="py-3 px-4 whitespace-nowrap text-sm font-bold ${valorClass}">
-                        ${transacao.tipo === 'Saída' ? '-' : ''}${formatCurrency(transacao.valor)}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">${tipoSpan}</td>
-                `;
-                ultimasTransacoesTable.appendChild(row);
+        // ===== GRÁFICO 11: CATEGORIAS COMPORTAMENTAIS =====
+        if (document.getElementById('categoriasComportamentoChart') && contextData.analise_comportamental) {
+            try {
+                const catComportamentoLabels = Object.keys(contextData.analise_comportamental.categorias_comportamento);
+                const catComportamentoValues = Object.values(contextData.analise_comportamental.categorias_comportamento);
+                
+                new Chart(document.getElementById('categoriasComportamentoChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: catComportamentoLabels,
+                        datasets: [{
+                            data: catComportamentoValues,
+                            backgroundColor: ['#3b82f6', '#f59e0b', '#10b981']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'right'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${formatCurrency(context.raw)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('Gráfico 11 criado: Categorias Comportamentais');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 11:', error);
+            }
+        }
+
+        // ===== GRÁFICO 12: GASTOS POR HORA DO DIA =====
+        if (document.getElementById('gastosPorHoraChart') && contextData.analise_comportamental) {
+            try {
+                const gastosPorHoraLabels = Object.keys(contextData.analise_comportamental.gastos_por_hora_dia);
+                const gastosPorHoraValues = Object.values(contextData.analise_comportamental.gastos_por_hora_dia);
+                
+                new Chart(document.getElementById('gastosPorHoraChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: gastosPorHoraLabels,
+                        datasets: [{
+                            label: 'Gastos por Hora',
+                            data: gastosPorHoraValues,
+                            backgroundColor: 'rgba(236, 72, 153, 0.8)',
+                            borderRadius: 5
+                        }]
+                    },
+                    options: chartOptions
+                });
+                console.log('Gráfico 12 criado: Gastos por Hora');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 12:', error);
+            }
+        }
+
+        // ===== GRÁFICO 13: ALOCAÇÃO DE INVESTIMENTOS =====
+        if (document.getElementById('alocacaoInvestimentosChart') && contextData.otimizacao_investimentos) {
+            try {
+                new Chart(document.getElementById('alocacaoInvestimentosChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: contextData.otimizacao_investimentos.alocacao_labels,
+                        datasets: [{
+                            data: contextData.otimizacao_investimentos.alocacao_values,
+                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'right'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.raw}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('Gráfico 13 criado: Alocação de Investimentos');
+            } catch (error) {
+                console.error('Erro ao criar gráfico 13:', error);
+            }
+        }
+
+        console.log('✅ Processo de criação de gráficos concluído!');
+    }
+
+        function fillMainCards(contextData) {
+        // Preencher os cards principais
+        if (document.getElementById('saldoGeral')) {
+            document.getElementById('saldoGeral').textContent = formatCurrency(contextData.saldo_geral);
+            const saldoGeralEl = document.getElementById('saldoGeral');
+            if (saldoGeralEl) {
+                if (contextData.saldo_geral >= 0) {
+                    saldoGeralEl.classList.add('text-green-600');
+                    saldoGeralEl.classList.remove('text-red-600');
+                } else {
+                    saldoGeralEl.classList.add('text-red-600');
+                    saldoGeralEl.classList.remove('text-green-600');
+                }
+            }
+        }
+
+        if (document.getElementById('entradasMes')) {
+            document.getElementById('entradasMes').textContent = formatCurrency(contextData.entradas_mes);
+        }
+
+        if (document.getElementById('variacaoReceitas')) {
+            const variacaoReceitasEl = document.getElementById('variacaoReceitas');
+            variacaoReceitasEl.textContent = `${contextData.variacao_receitas >= 0 ? '+' : ''}${formatPercent(contextData.variacao_receitas)}`;
+            variacaoReceitasEl.className = 'font-medium ' + (contextData.variacao_receitas >= 0 ? 'text-green-600' : 'text-red-600');
+        }
+
+        if (document.getElementById('saidasMes')) {
+            document.getElementById('saidasMes').textContent = formatCurrency(contextData.saidas_mes);
+        }
+
+        if (document.getElementById('variacaoDespesas')) {
+            const variacaoDespesasEl = document.getElementById('variacaoDespesas');
+            variacaoDespesasEl.textContent = `${contextData.variacao_despesas >= 0 ? '+' : ''}${formatPercent(contextData.variacao_despesas)}`;
+            variacaoDespesasEl.className = 'font-medium ' + (contextData.variacao_despesas <= 0 ? 'text-green-600' : 'text-red-600');
+        }
+
+        // PREENCHER RESERVA DE EMERGÊNCIA
+        renderReservaEmergencia(contextData, contextData.meses_meta || 6);
+        
+        // PREENCHER INDICADORES DE SAÚDE FINANCEIRA
+        fillHealthIndicators(contextData);
+        
+        // PREENCHER SIMULAÇÕES DE CENÁRIOS
+        fillScenarioSimulations(contextData);
+        
+        // PREENCHER ANÁLISE DE RISCOS
+        fillRiskAnalysis(contextData);
+        
+        // PREENCHER ÚLTIMAS TRANSAÇÕES
+        fillLatestTransactions(contextData);
+    }
+
+    function renderReservaEmergencia(contextData, mesesMeta = 6) {
+        const despesaMensalMedia = contextData.despesa_mensal_media || 0;
+        const saldoPoupancas = contextData.saldo_poupancas || 0;
+        const reservaEmergenciaIdeal = despesaMensalMedia * mesesMeta;
+        const valorFaltante = Math.max(0, reservaEmergenciaIdeal - saldoPoupancas);
+        const percentualAtingido = reservaEmergenciaIdeal > 0 ? 
+            Math.min((saldoPoupancas / reservaEmergenciaIdeal * 100), 100) : 0;
+
+        // Card resumido
+        if (document.getElementById('saldoPoupancas')) {
+            const saldoPoupancasEl = document.getElementById('saldoPoupancas');
+            saldoPoupancasEl.textContent = formatCurrency(saldoPoupancas);
+            saldoPoupancasEl.className = `card-value ${saldoPoupancas >= reservaEmergenciaIdeal ? 'text-green-600' : 'text-yellow-600'}`;
+        }
+
+        if (document.getElementById('metaReserva')) {
+            document.getElementById('metaReserva').textContent = `Meta: ${mesesMeta} meses (${formatCurrency(reservaEmergenciaIdeal)})`;
+        }
+
+        // Detalhado
+        if (document.getElementById('meses-meta-select')) {
+            document.getElementById('meses-meta-select').value = mesesMeta;
+        }
+
+        if (document.getElementById('reservaEmergenciaIdeal')) {
+            document.getElementById('reservaEmergenciaIdeal').textContent = formatCurrency(reservaEmergenciaIdeal);
+        }
+
+        if (document.getElementById('despesaMensalMedia')) {
+            document.getElementById('despesaMensalMedia').textContent = formatCurrency(despesaMensalMedia);
+        }
+
+        if (document.getElementById('saldoAtualPoupancas')) {
+            const saldoAtualEl = document.getElementById('saldoAtualPoupancas');
+            saldoAtualEl.textContent = formatCurrency(saldoPoupancas);
+            saldoAtualEl.className = `text-lg font-bold ${saldoPoupancas >= reservaEmergenciaIdeal ? 'text-green-600' : 'text-yellow-600'}`;
+        }
+
+        const diferencaLabel = document.getElementById('diferencaLabel');
+        const valorFaltanteEl = document.getElementById('valorFaltante');
+        const diferencaPanel = document.getElementById('diferencaReservaPanel');
+
+        if (diferencaLabel && valorFaltanteEl && diferencaPanel) {
+            if (valorFaltante > 0) {
+                diferencaLabel.textContent = 'Falta:';
+                valorFaltanteEl.textContent = `- ${formatCurrency(valorFaltante)}`;
+                valorFaltanteEl.className = 'text-lg font-bold text-yellow-600';
+                diferencaPanel.className = 'mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg';
+                
+                if (document.getElementById('projecaoTempoPanel')) {
+                    document.getElementById('projecaoTempoPanel').style.display = 'block';
+                }
+
+                // Simulação de tempo para atingir a meta
+                if (document.getElementById('tempoProjecao')) {
+                    const poupancaMensal = (contextData.entradas_mes || 0) - (contextData.saidas_mes || 0);
+                    let tempoProjecaoText = 'N/A';
+                    if (poupancaMensal > 0) {
+                        const mesesParaAtingir = valorFaltante / poupancaMensal;
+                        tempoProjecaoText = `${Math.ceil(mesesParaAtingir)} meses`;
+                    }
+                    document.getElementById('tempoProjecao').textContent = tempoProjecaoText;
+                }
+            } else {
+                diferencaLabel.textContent = 'Excedente:';
+                valorFaltanteEl.textContent = `+ ${formatCurrency(Math.abs(valorFaltante))}`;
+                valorFaltanteEl.className = 'text-lg font-bold text-green-600';
+                diferencaPanel.className = 'mb-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg';
+                
+                if (document.getElementById('projecaoTempoPanel')) {
+                    document.getElementById('projecaoTempoPanel').style.display = 'none';
+                }
+            }
+        }
+
+        if (document.getElementById('percentualAtingido')) {
+            document.getElementById('percentualAtingido').textContent = formatPercent(percentualAtingido);
+            document.getElementById('percentualAtingido').className = `text-sm font-bold ${percentualAtingido >= 100 ? 'text-green-600' : 'text-blue-600'}`;
+        }
+
+        if (document.getElementById('progressBar')) {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = `${percentualAtingido}%`;
+            progressBar.className = `h-2 rounded-full ${percentualAtingido >= 100 ? 'bg-green-500' : 'bg-blue-500'}`;
+        }
+
+        const statusReservaPanel = document.getElementById('statusReservaPanel');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
+
+        if (statusReservaPanel && statusIcon && statusText) {
+            if (percentualAtingido >= 100) {
+                statusReservaPanel.className = 'text-center p-2 rounded-lg bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200';
+                statusIcon.className = 'fas fa-check-circle mr-1';
+                statusText.textContent = `Meta de ${mesesMeta} meses atingida!`;
+            } else {
+                statusReservaPanel.className = 'text-center p-2 rounded-lg bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200';
+                statusIcon.className = 'fas fa-running mr-1';
+                statusText.textContent = `${percentualAtingido.toFixed(1)}% conquistado`;
+            }
+        }
+
+        // Listener para o seletor de meses da meta de reserva
+        const mesesMetaSelect = document.getElementById('meses-meta-select');
+        if (mesesMetaSelect) {
+            mesesMetaSelect.addEventListener('change', function() {
+                renderReservaEmergencia(contextData, parseInt(this.value));
             });
+        }
+    }
+
+    function fillHealthIndicators(contextData) {
+        const indicadores = contextData.indicadores || {};
+        
+        if (document.getElementById('liquidezCorrente')) {
+            document.getElementById('liquidezCorrente').textContent = formatPercent(indicadores.liquidez_corrente || 0);
+        }
+        
+        if (document.getElementById('margemSeguranca')) {
+            document.getElementById('margemSeguranca').textContent = formatPercent(indicadores.margem_seguranca || 0);
+        }
+        
+        if (document.getElementById('endividamento')) {
+            document.getElementById('endividamento').textContent = formatPercent(indicadores.endividamento || 0);
+        }
+        
+        if (document.getElementById('poupancaMensal')) {
+            document.getElementById('poupancaMensal').textContent = formatCurrency(indicadores.poupanca_mensal || 0);
+        }
+        
+        if (document.getElementById('reservaEmergenciaIdealIndicador')) {
+            document.getElementById('reservaEmergenciaIdealIndicador').textContent = formatCurrency(indicadores.reserva_emergencia_ideal || 0);
+        }
+        
+        if (document.getElementById('nivelRisco')) {
+            document.getElementById('nivelRisco').textContent = contextData.analise_riscos?.nivel_risco || 'Baixo';
+        }
+    }
+
+    function fillScenarioSimulations(contextData) {
+        const simulacoes = contextData.simulacoes || {};
+        
+        if (document.getElementById('aumentoDespesas')) {
+            document.getElementById('aumentoDespesas').textContent = formatCurrency(simulacoes.aumento_10_despesas || 0);
+        }
+        
+        if (document.getElementById('reducaoDespesas')) {
+            document.getElementById('reducaoDespesas').textContent = formatCurrency(simulacoes.reducao_10_despesas || 0);
+        }
+        
+        if (document.getElementById('aumentoReceitas')) {
+            document.getElementById('aumentoReceitas').textContent = formatCurrency(simulacoes.aumento_10_receitas || 0);
+        }
+        
+        if (document.getElementById('reducaoReceitas')) {
+            document.getElementById('reducaoReceitas').textContent = formatCurrency(simulacoes.reducao_10_receitas || 0);
+        }
+        
+        if (document.getElementById('impactoInflacao')) {
+            document.getElementById('impactoInflacao').textContent = formatCurrency(simulacoes.impacto_inflacao_5 || 0);
+        }
+    }
+
+    function fillRiskAnalysis(contextData) {
+        const analiseRiscos = contextData.analise_riscos || {};
+        
+        if (document.getElementById('concentracaoRisco')) {
+            document.getElementById('concentracaoRisco').textContent = formatPercent(analiseRiscos.concentracao_risco || 0);
+        }
+        
+        if (document.getElementById('reservaIdealCoberta')) {
+            const saldoPoupancas = contextData.saldo_poupancas || 0;
+            const reservaIdeal = analiseRiscos.reserva_ideal || 0;
+            document.getElementById('reservaIdealCoberta').textContent = 
+                `${formatCurrency(saldoPoupancas)} / ${formatCurrency(reservaIdeal)}`;
+        }
+        
+        if (document.getElementById('nivelRiscoTexto')) {
+            document.getElementById('nivelRiscoTexto').textContent = analiseRiscos.nivel_risco || 'Baixo';
+        }
+    }
+
+    function fillLatestTransactions(contextData) {
+        const ultimasTransacoesTableBody = document.getElementById('ultimasTransacoesTable');
+        if (!ultimasTransacoesTableBody) return;
+        
+        ultimasTransacoesTableBody.innerHTML = '';
+
+        const transacoes = contextData.ultimas_transacoes || [];
+        
+        if (transacoes.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                    Nenhuma transação encontrada
+                </td>
+            `;
+            ultimasTransacoesTableBody.appendChild(row);
+            return;
+        }
+
+        transacoes.forEach(transacao => {
+            const row = document.createElement('tr');
+            row.classList.add('table-row');
+            const valorClass = transacao.valor >= 0 ? 'valor-positivo' : 'valor-negativo';
+            
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                    ${new Date(transacao.data).toLocaleDateString('pt-BR')}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                    ${transacao.descricao || 'N/A'}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="${valorClass}">${formatCurrency(transacao.valor)}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                    ${transacao.categoria || 'N/A'}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                    ${transacao.conta || 'N/A'}
+                </td>
+            `;
+            ultimasTransacoesTableBody.appendChild(row);
         });
-    </script>
+    }
+</script>
 {% endblock %}

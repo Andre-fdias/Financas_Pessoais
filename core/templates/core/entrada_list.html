@@ -1,76 +1,235 @@
 {% extends 'core/base.html' %}
 {% load currency_filters %}
+{% load custom_filters %} {# Adicione esta linha para carregar o filtro personalizado #}
 
 {% block title %}Minhas Receitas - {{ mes_atual_nome }} {{ ano_atual }}{% endblock %}
 
-
 {% block extra_head %}
-    <!-- Tailwind CSS CDN (se não estiver já no base.html) -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome para ícones (se não estiver já no base.html) -->
+    <!-- Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Chart.js CDN (se não estiver já no base.html) -->
+    <!-- Chart.js CDN para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Estilos base do painel e outros elementos */
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(to right, #ece9e6, #ffffff); /* Fundo suave */
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); /* Fundo mais suave */
         }
         .glass-panel {
-            background-color: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1rem;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
         }
 
-        @supports not (backdrop-filter: blur(16px)) {
+        @supports not (backdrop-filter: blur(12px)) {
             .glass-panel {
-                background-color: rgba(255, 255, 255, 0.9);
+                background: rgba(255, 255, 255, 0.95);
             }
         }
         
         .chart-container {
-            height: 300px; /* Altura fixa para todos os containers de gráficos */
+            height: 300px;
             min-height: 300px;
             display: flex;
             justify-content: center;
             align-items: center;
         }
         
-        /* Ajustando as cores para o padrão do extrato_completo.html */
         .valor-positivo {
-            background-color: #f0fdf4;
-            color: #166534;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: 500;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
         }
         
         .valor-negativo {
-            background-color: #fef2f2;
-            color: #b91c1c; /* Cor original do extrato. Ajustado de #991b1b */
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: 500;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
         }
 
-        /* Estilos para modo escuro, se aplicável, espelhando extrato_completo.html */
         .dark .valor-positivo {
-            background-color: #052e16;
-            color: #bbf7d0;
+            background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
         }
         
         .dark .valor-negativo {
-            background-color: #450a0a;
-            color: #fca5a5;
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
         }
 
-        /* Estilo para tabela de transações */
         .table-striped tbody tr:nth-child(odd) {
             background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .table-row {
+            transition: all 0.2s ease;
+        }
+        
+        .table-row:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+        }
+
+        /* Estilos do Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Estilos do Formulário dentro do Modal */
+        .form-container {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .form-input {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            width: 100%;
+        }
+        
+        .form-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            outline: none;
+            transform: translateY(-1px);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 0.95rem;
+        }
+        
+        .form-error {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 6px;
+            padding-left: 4px;
+            display: none;
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3), 0 2px 4px -1px rgba(99, 102, 241, 0.2);
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4), 0 4px 6px -2px rgba(99, 102, 241, 0.3);
+        }
+        
+        .cancel-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .cancel-btn:hover {
+            background-color: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-group {
+            position: relative;
+            margin-bottom: 1.25rem;
+        }
+        
+        .hidden-field {
+            display: none;
+        }
+        
+        .success-message {
+            display: none;
+            background-color: #10b981;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            text-align: center;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+        }
+
+        .entrada-table-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .filter-pill {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .filter-pill:hover {
+            transform: scale(1.05);
+        }
+        
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
         }
     </style>
 {% endblock %}
@@ -78,29 +237,36 @@
 {% block content %}
 <div class="glass-panel min-h-screen p-8 flex flex-col space-y-6">
     <!-- Cabeçalho e Botão -->
-    <div class="flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Minhas Receitas</h1>
-            <h2 class="text-xl text-gray-600 dark:text-gray-300">{{ mes_atual_nome }} {{ ano_atual }}</h2>
+    <div class="glass-panel p-6 mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                    <i class="fas fa-hand-holding-usd mr-3 text-green-600"></i>
+                    Minhas Receitas
+                </h1>
+                <p class="text-xl text-gray-600 dark:text-gray-300 font-semibold">
+                    Gerencie suas entradas financeiras
+                </p>
+            </div>
+            <button id="openEntradaModalBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg inline-flex items-center shadow-md hover:shadow-lg transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                Adicionar Entrada
+            </button>
         </div>
-        <a href="{% url 'core:entrada_create' %}" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg inline-flex items-center shadow-md hover:shadow-lg transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
-            Adicionar
-        </a>
     </div>
 
     <!-- Cards de Resumo -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 stats-grid">
         <!-- Card Total -->
-        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-green-500 dark:bg-gray-800">
+        <div class="glass-panel p-6 stats-card border-l-4 border-green-500">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Total Recebido</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ total_entradas|floatformat:2 }}</p>
+                      <p class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">{{ total_entradas|br_currency }}</p>
                 </div>
-                <div class="bg-green-100 p-2 rounded-lg text-green-600 dark:bg-green-900 dark:text-green-200">
+                <div class="bg-green-100 p-3 rounded-full text-green-600 dark:bg-green-900 dark:text-green-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -114,13 +280,13 @@
         </div>
 
         <!-- Card Mês Atual -->
-        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-blue-500 dark:bg-gray-800">
+        <div class="glass-panel p-6 stats-card border-l-4 border-blue-500">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Receita do Mês</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ entradas_mes_atual|floatformat:2 }}</p>
+                    <p class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">{{ entradas_mes_atual|br_currency }}</p>
                 </div>
-                <div class="bg-blue-100 p-2 rounded-lg text-blue-600 dark:bg-blue-900 dark:text-blue-200">
+                <div class="bg-blue-100 p-3 rounded-full text-blue-600 dark:bg-blue-900 dark:text-blue-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
@@ -134,13 +300,13 @@
         </div>
 
         <!-- Card Média Mensal -->
-        <div class="bg-gray-100 rounded-xl shadow-lg p-6 border-l-4 border-purple-500 dark:bg-gray-800">
+        <div class="glass-panel p-6 stats-card border-l-4 border-purple-500">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm font-medium text-gray-500 mb-1 dark:text-gray-300">Média Mensal</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ media_mensal|floatformat:2 }}</p>
+                    <p class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">{{ media_mensal|br_currency }}</p>
                 </div>
-                <div class="bg-purple-100 p-2 rounded-lg text-purple-600 dark:bg-purple-900 dark:text-purple-200">
+                <div class="bg-purple-100 p-3 rounded-full text-purple-600 dark:bg-purple-900 dark:text-purple-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
                     </svg>
@@ -154,105 +320,166 @@
         </div>
     </div>
 
-    <!-- Painel de Filtros -->
-<!-- No painel de filtros, altere os links para manter o mês atual como padrão -->
-<div class="bg-gray-100 rounded-xl shadow-lg p-6 my-8 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-    <h2 class="text-lg font-semibold text-gray-700 mb-4 dark:text-white">Filtrar Receitas</h2>
-    
-    <!-- Linha 1: Ano e Forma de Recebimento -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <!-- Filtro Ano -->
-        <div>
-            <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Ano</label>
-            <div class="flex flex-wrap gap-2">
-                {% for ano in anos_disponiveis %}
-                <a href="?ano={{ ano }}&mes={{ mes_selecionado }}{% if forma_filtro %}&forma={{ forma_filtro }}{% endif %}"
-                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                          {% if ano == ano_selecionado %}
-                              bg-green-600 text-white shadow
-                          {% else %}
-                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                          {% endif %}">
-                    {{ ano }}
-                </a>
-                {% endfor %}
-            </div>
-        </div>
+
+    <!-- Filters Section -->
+    <div class="glass-panel p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6 flex items-center">
+            <i class="fas fa-filter mr-3 text-indigo-600"></i>
+            Filtrar Entradas
+        </h2>
         
-        <!-- Filtro Forma de Recebimento -->
-        <div>
-            <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Forma de Recebimento</label>
-            <div class="flex flex-wrap gap-2">
-                <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}"
-                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                          {% if not forma_filtro %}
-                              bg-green-600 text-white shadow
-                          {% else %}
-                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                          {% endif %}">
-                    Todas
-                </a>
-                {% for forma in FORMA_RECEBIMENTO_CHOICES %}
-                <a href="?ano={{ ano_selecionado }}&mes={{ mes_selecionado }}&forma={{ forma.0 }}"
-                   class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                          {% if forma_filtro == forma.0 %}
-                              bg-green-600 text-white shadow
-                          {% else %}
-                              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                          {% endif %}">
-                    {{ forma.1 }}
-                </a>
-                {% endfor %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <!-- Conta Bancária Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
+                    <i class="fas fa-university mr-2"></i>Conta Bancária
+                </label>
+                <select onchange="updateFilters()" id="contaBancariaFilter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Todas as contas</option>
+                    {% for conta in contas_bancarias_filter %}
+                    <option value="{{ conta.pk }}" {% if conta_filter == conta.pk|stringformat:"s" %}selected{% endif %}>{{ conta.get_nome_banco_display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Mês Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
+                    <i class="fas fa-calendar-alt mr-2"></i>Mês
+                </label>
+                <select onchange="updateFilters()" id="mesFilter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Todos os meses</option>                    
+                    {% for mes_num, mes_nome in meses_disponiveis %}
+                    <option value="{{ mes_num|stringformat:'02d' }}" {% if mes_filter == mes_num|stringformat:'02d' %}selected{% endif %}>{{ mes_nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Ano Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
+                    <i class="fas fa-calendar-alt mr-2"></i>Ano
+                </label>
+                <select onchange="updateFilters()" id="anoFilter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Todos os anos</option>
+                    {% for ano in anos_disponiveis %}
+                    <option value="{{ ano }}" {% if ano_filter == ano|stringformat:"s" %}selected{% endif %}>{{ ano }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Forma de Recebimento Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
+                    <i class="fas fa-money-check-alt mr-2"></i>Forma de Recebimento
+                </label>
+                <select onchange="updateFilters()" id="formaRecebimentoFilter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Todas as formas</option>
+                    {% for code, name in FORMA_RECEBIMENTO_CHOICES %}
+                    <option value="{{ code }}" {% if forma_recebimento_filter == code %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="col-span-1 md:col-span-2 lg:col-span-1 flex items-end">
+                <div class="flex gap-2 w-full">
+                    <button onclick="clearFilters()" class="flex-1 bg-gray-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-600 transition-colors flex items-center justify-center">
+                        <i class="fas fa-eraser mr-2"></i>Limpar
+                    </button>
+                    <button onclick="applyFilters()" class="flex-1 bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-indigo-700 transition-colors flex items-center justify-center">
+                        <i class="fas fa-check-circle mr-2"></i>Aplicar
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Linha 2: Mês -->
-    <div>
-        <label class="block text-sm font-medium text-gray-600 mb-2 dark:text-gray-300">Mês</label>
-        <div class="flex flex-wrap gap-2">
-            <a href="?ano={{ ano_selecionado }}&mes=todos{% if forma_filtro %}&forma={{ forma_filtro }}{% endif %}"
-               class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                      {% if mes_selecionado == 'todos' %}
-                          bg-green-600 text-white shadow
-                      {% else %}
-                          bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                      {% endif %}">
-                Todos
-            </a>
-            {% for mes_num, mes_nome in meses %}
-            <a href="?ano={{ ano_selecionado }}&mes={{ mes_num }}{% if forma_filtro %}&forma={{ forma_filtro }}{% endif %}"
-               class="px-3 py-1 rounded-lg text-sm font-medium transition-all
-                      {% if mes_selecionado == mes_num|stringformat:'02d' %}
-                          bg-green-600 text-white shadow
-                      {% else %}
-                          bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                      {% endif %}">
-                {{ mes_nome|slice:":3" }}
-            </a>
-            {% endfor %}
+
+        <!-- Active Filters Badges -->
+        <div class="flex flex-wrap gap-2 mt-4">
+            {% comment %}
+                Para que o get_item funcione com contas_bancarias_filter, meses_disponiveis e FORMA_RECEBIMENTO_CHOICES,
+                é ideal que você prepare esses dados como dicionários (id: nome) no seu contexto do Django.
+                Exemplo no seu views.py:
+                from django.db.models import Q
+                from .models import Entrada, ContaBancaria # Assumindo seus modelos
+
+                def entrada_list(request):
+                    # ... sua lógica de filtragem ...
+
+                    contas_bancarias_display_map = {str(c.pk): c.get_nome_banco_display() for c in ContaBancaria.objects.filter(proprietario=request.user)}
+                    meses_disponiveis_display_map = {str(k): v for k, v in Entrada.MESES_CHOICES} # Se MESES_CHOICES for uma lista de tuplas
+                    
+                    context = {
+                        # ... outros itens do contexto ...
+                        'contas_bancarias_display_map': contas_bancarias_display_map,
+                        'meses_disponiveis_display_map': meses_disponiveis_display_map,
+                        'FORMA_RECEBIMENTO_CHOICES_MAP': {str(k): v for k,v in Entrada.FORMA_RECEBIMENTO_CHOICES}, # Se FORMA_RECEBIMENTO_CHOICES for uma lista de tuplas
+                        'conta_filter': request.GET.get('conta'),
+                        'mes_filter': request.GET.get('mes'),
+                        'ano_filter': request.GET.get('ano'),
+                        'forma_recebimento_filter': request.GET.get('forma_recebimento'),
+                    }
+                    return render(request, 'core/entrada_list.html', context)
+            {% endcomment %}
+
+            {% if conta_filter %}
+            <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium dark:bg-blue-900 dark:text-blue-200 filter-pill">
+                Conta: {{ contas_bancarias_display_map|get_item:conta_filter }}
+                <button onclick="removeFilter('conta')" class="ml-2 text-blue-600 hover:text-blue-800">×</button>
+            </span>
+            {% endif %}
+            
+            {% if mes_filter %}
+            <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium dark:bg-green-900 dark:text-green-200 filter-pill">
+                Mês: {{ meses_disponiveis_display_map|get_item:mes_filter }}
+                <button onclick="removeFilter('mes')" class="ml-2 text-green-600 hover:text-green-800">×</button>
+            </span>
+            {% endif %}
+
+            {% if ano_filter %}
+            <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium dark:bg-yellow-900 dark:text-yellow-200 filter-pill">
+                Ano: {{ ano_filter }}
+                <button onclick="removeFilter('ano')" class="ml-2 text-yellow-600 hover:text-yellow-800">×</button>
+            </span>
+            {% endif %}
+
+            {% if forma_recebimento_filter %}
+            <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium dark:bg-purple-900 dark:text-purple-200 filter-pill">
+                Forma: {{ FORMA_RECEBIMENTO_CHOICES|get_item:forma_recebimento_filter }} {# O filtro personalizado já lida com a lista de tuplas aqui #}
+                <button onclick="removeFilter('forma_recebimento')" class="ml-2 text-purple-600 hover:text-purple-800">×</button>
+            </span>
+            {% endif %}
         </div>
     </div>
-</div>
 
     <!-- Tabela de Entradas -->
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden mt-8 dark:bg-gray-800">
-        <div class="overflow-x-auto">
+    <div class="glass-panel overflow-hidden">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
+                <i class="fas fa-list-ol mr-3 text-indigo-600"></i>
+                Lista de Receitas
+                <span class="ml-3 bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium dark:bg-indigo-900 dark:text-indigo-200">
+                    {{ entradas|length }} registros
+                </span>
+            </h2>
+        </div>
+
+        <div class="overflow-x-auto entrada-table-container">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-indigo-600 dark:bg-indigo-800">
+                <thead class="bg-indigo-50 dark:bg-indigo-900">
                     <tr>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Descrição</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Origem</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Data</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Forma de Recebimento</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Conta</th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Valor</th>
-                        <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider">Ações</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">Descrição</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">Origem</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">Data</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">Forma de Recebimento</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">Conta</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">Valor</th>
+                        <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-indigo-800 uppercase tracking-wider dark:text-indigo-200">Ações</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                     {% for entrada in entradas %}
-                    <tr class="hover:bg-gray-50 transition-colors duration-150 dark:hover:bg-gray-700">
+                    <tr class="table-row hover:bg-gray-50 transition-colors duration-150 dark:hover:bg-gray-700">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="font-medium text-gray-900 dark:text-white">{{ entrada.nome }}</div>
                         </td>
@@ -273,25 +500,41 @@
                                 {{ entrada.valor|br_currency }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-y-2">
-                            <a href="{% url 'core:entrada_update' entrada.pk %}" class="text-blue-600 hover:text-blue-800 transition-colors flex items-center justify-end dark:text-blue-400 dark:hover:text-blue-300">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div class="flex items-center space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800 transition-colors flex items-center justify-end dark:text-blue-400 dark:hover:text-blue-300 edit-entrada-btn"
+                                data-entrada-id="{{ entrada.pk }}"
+                                data-entrada-nome="{{ entrada.nome }}"
+                                data-entrada-valor="{{ entrada.valor }}"
+                                data-entrada-data="{{ entrada.data|date:'Y-m-d' }}"
+                                data-entrada-local="{{ entrada.local|default:'' }}"
+                                data-entrada-forma-recebimento="{{ entrada.forma_recebimento }}"
+                                data-entrada-conta-bancaria="{{ entrada.conta_bancaria.pk }}"
+                                data-entrada-observacao="{{ entrada.observacao|default:'' }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
-                                Editar
-                            </a>
-                            <a href="{% url 'core:entrada_delete' entrada.pk %}" class="text-red-600 hover:text-red-800 transition-colors flex items-center justify-end dark:text-red-400 dark:hover:text-red-300">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    
+                            </button>
+                            <button class="text-red-600 hover:text-red-800 transition-colors flex items-center justify-end dark:text-red-400 dark:hover:text-red-300 delete-entrada-btn"
+                                data-entrada-id="{{ entrada.pk }}"
+                                data-entrada-nome="{{ entrada.nome }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
-                                Excluir
-                            </a>
-                        </td>
+                             
+                            </button>
+                        </div>
+
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="7" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                            Nenhuma receita encontrada para o período selecionado
+                            <div class="text-gray-400 dark:text-gray-500">
+                                <i class="fas fa-inbox text-4xl mb-4"></i>
+                                <p class="text-lg font-medium">Nenhuma receita encontrada</p>
+                                <p class="text-sm">Tente ajustar os filtros ou adicione novas receitas</p>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -300,4 +543,893 @@
         </div>
     </div>
 </div>
+
+<!-- Loading Spinner -->
+<div id="loadingSpinner" class="loading-spinner hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+        <p class="text-center mt-4 text-gray-600">Processando...</p>
+    </div>
+</div>
+
+<!-- Modal para Adicionar Entrada -->
+<div id="entradaModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="form-container w-full max-w-4xl p-8">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Adicionar Entrada</h2>
+                <button type="button" id="closeEntradaModalBtn" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <form method="post" id="entradaFormModal" action="{% url 'core:entrada_create' %}">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Coluna 1 -->
+                    <div class="space-y-6">
+                        <!-- Descrição -->
+                        <div class="input-group">
+                            <label for="id_nome" class="form-label flex items-center">
+                                <i class="fas fa-file-alt mr-2 text-blue-500"></i>
+                                Descrição
+                            </label>
+                            <input type="text" id="id_nome" name="nome" class="form-input" placeholder="Descrição da entrada" required>
+                            <p class="form-error" id="nome_error"></p>
+                        </div>
+
+                        <!-- Valor -->
+                        <div class="input-group">
+                            <label for="id_valor" class="form-label flex items-center">
+                                <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+                                Valor
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">R$</span>
+                                </div>
+                                <input type="text" id="id_valor" name="valor" class="form-input pl-10" placeholder="0,00" required>
+                            </div>
+                            <p class="form-error" id="valor_error"></p>
+                        </div>
+
+                        <!-- Data -->
+                        <div class="input-group">
+                            <label for="id_data" class="form-label flex items-center">
+                                <i class="fas fa-calendar-alt mr-2 text-purple-500"></i>
+                                Data
+                            </label>
+                            <input type="date" id="id_data" name="data" class="form-input" required>
+                            <p class="form-error" id="data_error"></p>
+                        </div>
+
+                        <!-- Origem -->
+                        <div class="input-group">
+                            <label for="id_local" class="form-label flex items-center">
+                                <i class="fas fa-map-marker-alt mr-2 text-red-500"></i>
+                                Origem
+                            </label>
+                            <input type="text" id="id_local" name="local" class="form-input" placeholder="Origem do recebimento" required>
+                            <p class="form-error" id="local_error"></p>
+                        </div>
+                    </div>
+
+                    <!-- Coluna 2 -->
+                    <div class="space-y-6">
+                        <!-- Forma de Recebimento -->
+                        <div class="input-group">
+                            <label for="id_forma_recebimento" class="form-label flex items-center">
+                                <i class="fas fa-credit-card mr-2 text-yellow-500"></i>
+                                Forma de Recebimento
+                            </label>
+                            <div class="relative">
+                                <select id="id_forma_recebimento" name="forma_recebimento" class="form-input" required>
+                                    <option value="">Selecione a forma de recebimento</option>
+                                    {% for code, name in FORMA_RECEBIMENTO_CHOICES %}
+                                        <option value="{{ code }}">{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <p class="form-error" id="forma_recebimento_error"></p>
+                        </div>
+
+                        <!-- Conta Bancária -->
+                        <div class="input-group">
+                            <label for="id_conta_bancaria" class="form-label flex items-center">
+                                <i class="fas fa-landmark mr-2 text-indigo-500"></i>
+                                Conta Bancária
+                            </label>
+                            <div class="relative">
+                                <select id="id_conta_bancaria" name="conta_bancaria" class="form-input" required>
+                                    <option value="">Selecione a conta bancária</option>
+                                    {% for conta in contas_bancarias %}
+                                        <option value="{{ conta.pk }}">{{ conta.get_nome_banco_display }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <p class="form-error" id="conta_bancaria_error"></p>
+                        </div>
+
+                        <!-- Observações -->
+                        <div class="input-group">
+                            <label for="id_observacao" class="form-label flex items-center">
+                                <i class="fas fa-sticky-note mr-2 text-gray-500"></i>
+                                Observações
+                            </label>
+                            <textarea id="id_observacao" name="observacao" class="form-input" rows="5" placeholder="Observações adicionais"></textarea>
+                            <p class="form-error" id="observacao_error"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 mt-8">
+                    <button type="button" id="cancelEntradaBtn" class="cancel-btn px-6 py-3 border border-gray-300 rounded-xl text-gray-700 flex items-center transition-all hover:shadow-md">
+                        <i class="fas fa-times mr-2"></i>
+                        Cancelar
+                    </button>
+                    <button type="submit" id="saveEntradaBtn" class="submit-btn text-white font-medium py-2 px-4 rounded-lg inline-flex items-center">
+                        <i class="fas fa-save mr-2"></i>
+                        Salvar Entrada
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Entrada -->
+<div id="editEntradaModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="form-container w-full max-w-4xl p-8">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Editar Entrada</h2>
+                <button type="button" id="closeEditEntradaModalBtn" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <form method="post" id="editEntradaFormModal" action="">
+                {% csrf_token %}
+                <input type="hidden" id="edit_entrada_id" name="entrada_id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Coluna 1 -->
+                    <div class="space-y-6">
+                        <!-- Descrição -->
+                        <div class="input-group">
+                            <label for="edit_nome" class="form-label flex items-center">
+                                <i class="fas fa-file-alt mr-2 text-blue-500"></i>
+                                Descrição
+                            </label>
+                            <input type="text" id="edit_nome" name="nome" class="form-input" placeholder="Descrição da entrada" required>
+                            <p class="form-error" id="edit_nome_error"></p>
+                        </div>
+
+                        <!-- Valor -->
+                        <div class="input-group">
+                            <label for="edit_valor" class="form-label flex items-center">
+                                <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+                                Valor
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">R$</span>
+                                </div>
+                                <input type="text" id="edit_valor" name="valor" class="form-input pl-10" placeholder="0,00" required>
+                            </div>
+                            <p class="form-error" id="edit_valor_error"></p>
+                        </div>
+
+                        <!-- Data -->
+                        <div class="input-group">
+                            <label for="edit_data" class="form-label flex items-center">
+                                <i class="fas fa-calendar-alt mr-2 text-purple-500"></i>
+                                Data
+                            </label>
+                            <input type="date" id="edit_data" name="data" class="form-input" required>
+                            <p class="form-error" id="edit_data_error"></p>
+                        </div>
+
+                        <!-- Origem -->
+                        <div class="input-group">
+                            <label for="edit_local" class="form-label flex items-center">
+                                <i class="fas fa-map-marker-alt mr-2 text-red-500"></i>
+                                Origem
+                            </label>
+                            <input type="text" id="edit_local" name="local" class="form-input" placeholder="Origem do recebimento" required>
+                            <p class="form-error" id="edit_local_error"></p>
+                        </div>
+                    </div>
+
+                    <!-- Coluna 2 -->
+                    <div class="space-y-6">
+                        <!-- Forma de Recebimento -->
+                        <div class="input-group">
+                            <label for="edit_forma_recebimento" class="form-label flex items-center">
+                                <i class="fas fa-credit-card mr-2 text-yellow-500"></i>
+                                Forma de Recebimento
+                            </label>
+                            <div class="relative">
+                                <select id="edit_forma_recebimento" name="forma_recebimento" class="form-input" required>
+                                    <option value="">Selecione a forma de recebimento</option>
+                                    {% for code, name in FORMA_RECEBIMENTO_CHOICES %}
+                                        <option value="{{ code }}">{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <p class="form-error" id="edit_forma_recebimento_error"></p>
+                        </div>
+
+                        <!-- Conta Bancária -->
+                        <div class="input-group">
+                            <label for="edit_conta_bancaria" class="form-label flex items-center">
+                                <i class="fas fa-landmark mr-2 text-indigo-500"></i>
+                                Conta Bancária
+                            </label>
+                            <div class="relative">
+                                <select id="edit_conta_bancaria" name="conta_bancaria" class="form-input" required>
+                                    <option value="">Selecione a conta bancária</option>
+                                    {% for conta in contas_bancarias %}
+                                        <option value="{{ conta.pk }}">{{ conta.get_nome_banco_display }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <p class="form-error" id="edit_conta_bancaria_error"></p>
+                        </div>
+
+                        <!-- Observações -->
+                        <div class="input-group">
+                            <label for="edit_observacao" class="form-label flex items-center">
+                                <i class="fas fa-sticky-note mr-2 text-gray-500"></i>
+                                Observações
+                            </label>
+                            <textarea id="edit_observacao" name="observacao" class="form-input" rows="5" placeholder="Observações adicionais"></textarea>
+                            <p class="form-error" id="edit_observacao_error"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 mt-8">
+                    <button type="button" id="cancelEditEntradaBtn" class="cancel-btn px-6 py-3 border border-gray-300 rounded-xl text-gray-700 flex items-center transition-all hover:shadow-md">
+                        <i class="fas fa-times mr-2"></i>
+                        Cancelar
+                    </button>
+                    <button type="submit" id="updateEntradaBtn" class="submit-btn text-white font-medium py-2 px-4 rounded-lg inline-flex items-center">
+                        <i class="fas fa-save mr-2"></i>
+                        Atualizar Entrada
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Excluir Entrada -->
+<div id="deleteEntradaModal" class="modal-overlay hidden">
+    <div class="modal-content max-w-md">
+        <div class="bg-white p-6 rounded-lg shadow-xl">
+            <div class="text-center mb-6">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mt-4" id="deleteEntradaModalTitle">Confirmar Exclusão</h3>
+                <p class="text-sm text-gray-500 mt-2" id="deleteEntradaModalMessage">Tem certeza de que deseja excluir esta entrada?</p>
+            </div>
+            
+            <div class="flex justify-center space-x-4">
+                <button type="button" id="cancelDeleteEntradaBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">
+                    Cancelar
+                </button>
+                <form id="deleteEntradaForm" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">
+                        Excluir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="success-message" id="successMessage">
+    <i class="fas fa-check-circle mr-2"></i>
+    Operação realizada com sucesso!
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Variáveis globais para os selects de filtro
+    let contaBancariaFilter, mesFilter, anoFilter, formaRecebimentoFilter;
+
+    // Função para mostrar o spinner de carregamento
+    function showLoading() {
+        document.getElementById('loadingSpinner').classList.remove('hidden');
+    }
+
+    // Função para esconder o spinner de carregamento
+    function hideLoading() {
+        document.getElementById('loadingSpinner').classList.add('hidden');
+    }
+
+    // Função para construir e aplicar os filtros
+    function updateFilters() {
+        showLoading(); // Mostra o spinner antes de recarregar
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // Atualiza os parâmetros da URL com base nos valores dos selects
+        if (contaBancariaFilter.value) {
+            urlParams.set('conta', contaBancariaFilter.value);
+        } else {
+            urlParams.delete('conta');
+        }
+
+        if (mesFilter.value) {
+            urlParams.set('mes', mesFilter.value);
+        } else {
+            urlParams.delete('mes');
+        }
+
+        if (anoFilter.value) {
+            urlParams.set('ano', anoFilter.value);
+        } else {
+            urlParams.delete('ano');
+        }
+
+        if (formaRecebimentoFilter.value) {
+            urlParams.set('forma_recebimento', formaRecebimentoFilter.value);
+        } else {
+            urlParams.delete('forma_recebimento');
+        }
+        
+        // Redireciona para a nova URL com os filtros aplicados
+        window.location.href = window.location.pathname + '?' + urlParams.toString();
+    }
+
+    // Função para aplicar os filtros (chama updateFilters)
+    function applyFilters() {
+        updateFilters();
+    }
+
+    // Função para limpar todos os filtros
+    function clearFilters() {
+        showLoading(); // Mostra o spinner antes de recarregar
+        window.location.href = window.location.pathname; // Redireciona para a URL base
+    }
+
+    // Função para remover um filtro específico
+    function removeFilter(filterType) {
+        showLoading(); // Mostra o spinner antes de recarregar
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.delete(filterType);
+        window.location.href = window.location.pathname + '?' + urlParams.toString();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializa as variáveis globais dos selects de filtro
+        contaBancariaFilter = document.getElementById('contaBancariaFilter');
+        mesFilter = document.getElementById('mesFilter');
+        anoFilter = document.getElementById('anoFilter');
+        formaRecebimentoFilter = document.getElementById('formaRecebimentoFilter');
+
+        // Esconde o spinner de carregamento quando o DOM estiver completamente carregado
+        hideLoading();
+
+
+        // Elementos do DOM para os modais de entrada
+        const openEntradaModalBtn = document.getElementById('openEntradaModalBtn');
+        const entradaModal = document.getElementById('entradaModal');
+        const closeEntradaModalBtn = document.getElementById('closeEntradaModalBtn');
+        const entradaFormModal = document.getElementById('entradaFormModal');
+        const cancelEntradaBtn = document.getElementById('cancelEntradaBtn');
+        
+        const editEntradaModal = document.getElementById('editEntradaModal');
+        const closeEditEntradaModalBtn = document.getElementById('closeEditEntradaModalBtn');
+        const editEntradaFormModal = document.getElementById('editEntradaFormModal');
+        const cancelEditEntradaBtn = document.getElementById('cancelEditEntradaBtn');
+        
+        const deleteEntradaModal = document.getElementById('deleteEntradaModal');
+        const cancelDeleteEntradaBtn = document.getElementById('cancelDeleteEntradaBtn');
+        const deleteEntradaForm = document.getElementById('deleteEntradaForm');
+        const deleteEntradaModalTitle = document.getElementById('deleteEntradaModalTitle');
+        const deleteEntradaModalMessage = document.getElementById('deleteEntradaModalMessage');
+        
+        const successMessage = document.getElementById('successMessage');
+        
+        // Campos do formulário
+        const valorInput = document.getElementById('id_valor');
+        const editValorInput = document.getElementById('edit_valor');
+        
+        // Funções para mostrar/esconder modais
+        function showModal(modalElement) {
+            modalElement.classList.remove('hidden');
+            setTimeout(() => modalElement.classList.add('show'), 10);
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function hideModal(modalElement) {
+            modalElement.classList.remove('show');
+            setTimeout(() => modalElement.classList.add('hidden'), 300);
+            document.body.style.overflow = '';
+        }
+        
+        // Função para mostrar mensagem de sucesso
+        function showSuccessMessage(message) {
+            const tempSuccessMessage = document.createElement('div');
+            tempSuccessMessage.className = 'success-message fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            tempSuccessMessage.innerHTML = `<i class="fas fa-check-circle mr-2"></i> ${message}`;
+            document.body.appendChild(tempSuccessMessage);
+            
+            setTimeout(() => {
+                tempSuccessMessage.remove();
+            }, 3000);
+        }
+        
+        // Função para exibir erros do formulário
+        function displayFormErrors(form, errors) {
+            console.log('Erros recebidos:', errors);
+            
+            // Limpa erros anteriores
+            const existingErrors = form.querySelectorAll('.form-error');
+            existingErrors.forEach(error => {
+                error.textContent = '';
+                error.style.display = 'none';
+                const inputField = form.querySelector(`#id_${error.id.replace('_error', '')}`) || form.querySelector(`#edit_${error.id.replace('_error', '')}`);
+                if (inputField) {
+                    inputField.classList.remove('border-red-500');
+                }
+            });
+            
+            const nonFieldErrorsContainer = form.querySelector('.non-field-errors-container');
+            if (nonFieldErrorsContainer) nonFieldErrorsContainer.remove();
+            
+            // Exibe novos erros
+            for (const field in errors) {
+                console.log('Campo com erro:', field, 'Erro:', errors[field]);
+                if (field === '__all__') {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'non-field-errors-container bg-red-50 border-l-4 border-red-500 p-4 dark:bg-red-900/20 dark:border-red-700 mb-4';
+                    errorDiv.innerHTML = `
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-500 dark:text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-red-700 dark:text-red-300">${errors[field][0]}</p>
+                            </div>
+                        </div>
+                    `;
+                    form.prepend(errorDiv);
+                } else {
+                    const errorElement = form.querySelector(`#${field}_error`) || form.querySelector(`#edit_${field}_error`);
+                    if (errorElement) {
+                        errorElement.textContent = errors[field][0];
+                        errorElement.style.display = 'block';
+                        
+                        const inputField = form.querySelector(`#id_${field}`) || form.querySelector(`#edit_${field}`);
+                        if (inputField) {
+                            inputField.classList.add('border-red-500');
+                        }
+                    }
+                }
+            }
+        }
+        
+// Função corrigida para formatação monetária com controle de cursor
+function formatarMoeda(input) {
+    if (!input) return;
+    
+    // Guarda a posição do cursor e a seleção
+    const selectionStart = input.selectionStart;
+    const originalValue = input.value;
+    
+    // Remove tudo que não é dígito
+    let value = input.value.replace(/\D/g, '');
+    
+    // Se estiver vazio, define como zero
+    if (value === '') {
+        input.value = '0,00';
+        input.setSelectionRange(4, 4); // Posiciona após "0,00"
+        return;
+    }
+    
+    // Remove zeros à esquerda
+    value = value.replace(/^0+/, '');
+    if (value === '') {
+        input.value = '0,00';
+        input.setSelectionRange(4, 4);
+        return;
+    }
+    
+    // Adiciona zeros à esquerda para ter pelo menos 3 dígitos (para centavos)
+    value = value.padStart(3, '0');
+    
+    // Separa reais e centavos
+    const reais = value.slice(0, -2);
+    const centavos = value.slice(-2);
+    
+    // Formata os reais com separadores de milhar
+    const formattedReais = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    
+    // Atualiza o valor do campo
+    input.value = formattedReais + ',' + centavos;
+    
+    // Calcula a nova posição do cursor
+    let newCursorPosition = selectionStart;
+    
+    // Ajusta a posição do cursor quando um separador de milhar é inserido ou removido
+    if (input.value.length > originalValue.length) {
+        // Se um ponto foi adicionado
+        const diff = input.value.length - originalValue.length;
+        let pointsAdded = 0;
+        for (let i = 0; i < selectionStart + diff; i++) {
+            if (input.value[i] === '.' && (originalValue[i] !== '.' || i >= originalValue.length)) {
+                pointsAdded++;
+            }
+        }
+        newCursorPosition = selectionStart + pointsAdded;
+    } else if (input.value.length < originalValue.length) {
+        // Se um ponto foi removido
+        const diff = originalValue.length - input.value.length;
+        let pointsRemoved = 0;
+        for (let i = 0; i < selectionStart; i++) {
+            if (originalValue[i] === '.' && (input.value[i] !== '.' || i >= input.value.length)) {
+                pointsRemoved++;
+            }
+        }
+        newCursorPosition = selectionStart - pointsRemoved;
+    }
+    
+    // Garante que a posição do cursor está dentro dos limites
+    newCursorPosition = Math.max(0, Math.min(newCursorPosition, input.value.length));
+    
+    // Reposiciona o cursor
+    input.setSelectionRange(newCursorPosition, newCursorPosition);
+}
+
+// Função para formatação inicial (quando o campo perde o foco) - melhorada para consistência
+function formatarMoedaBlur(input) {
+    if (!input) return;
+    
+    let value = input.value.replace(/\D/g, '');
+    
+    if (value === '' || value === '0') {
+        input.value = '0,00';
+        return;
+    }
+    
+    value = value.replace(/^0+/, '');
+    if (value === '') {
+        input.value = '0,00';
+        return;
+    }
+    
+    value = value.padStart(3, '0');
+    const reais = value.slice(0, -2);
+    const centavos = value.slice(-2);
+    const formattedReais = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    
+    input.value = formattedReais + ',' + centavos;
+}
+
+
+// Função para converter formato brasileiro para decimal
+function converterParaDecimal(valor) {
+    if (typeof valor !== 'string') return valor;
+    
+    let decimalValue = valor.replace(/\./g, '').replace(',', '.');
+    
+    if (decimalValue === '' || isNaN(parseFloat(decimalValue))) {
+        return '0.00';
+    }
+    
+    return parseFloat(decimalValue).toFixed(2);
+}
+        // Função para obter o token CSRF
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Event listeners para o modal de adição
+        if (openEntradaModalBtn) {
+            openEntradaModalBtn.addEventListener('click', () => showModal(entradaModal));
+        }
+        
+        if (closeEntradaModalBtn) {
+            closeEntradaModalBtn.addEventListener('click', () => hideModal(entradaModal));
+        }
+        
+        if (cancelEntradaBtn) {
+            cancelEntradaBtn.addEventListener('click', () => hideModal(entradaModal));
+        }
+        
+        if (entradaModal) {
+            entradaModal.addEventListener('click', function(e) {
+                if (e.target === entradaModal) {
+                    hideModal(entradaModal);
+                }
+            });
+        }
+        
+        // Event listeners para o modal de edição
+        if (closeEditEntradaModalBtn) {
+            closeEditEntradaModalBtn.addEventListener('click', () => hideModal(editEntradaModal));
+        }
+        
+        if (cancelEditEntradaBtn) {
+            cancelEditEntradaBtn.addEventListener('click', () => hideModal(editEntradaModal));
+        }
+        
+        if (editEntradaModal) {
+            editEntradaModal.addEventListener('click', function(e) {
+                if (e.target === editEntradaModal) {
+                    hideModal(editEntradaModal);
+                }
+            });
+        }
+        
+        // Event listeners para o modal de exclusão
+        if (cancelDeleteEntradaBtn) {
+            cancelDeleteEntradaBtn.addEventListener('click', () => hideModal(deleteEntradaModal));
+        }
+        
+        if (deleteEntradaModal) {
+            deleteEntradaModal.addEventListener('click', function(e) {
+                if (e.target === deleteEntradaModal) {
+                    hideModal(deleteEntradaModal);
+                }
+            });
+        }
+        
+        // Fechar modais com a tecla ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (entradaModal.classList.contains('show')) hideModal(entradaModal);
+                if (editEntradaModal.classList.contains('show')) hideModal(editEntradaModal);
+                if (deleteEntradaModal.classList.contains('show')) hideModal(deleteEntradaModal);
+            }
+        });
+        
+        // Formatação de campos monetários
+        if (valorInput) {
+            valorInput.addEventListener('input', () => formatarMoeda(valorInput));
+            valorInput.addEventListener('blur', () => formatarMoedaBlur(valorInput)); // Aplica formatação final ao perder o foco
+            // Formatação inicial
+            valorInput.value = '0,00';
+        }
+        
+        if (editValorInput) {
+            editValorInput.addEventListener('input', () => formatarMoeda(editValorInput));
+            editValorInput.addEventListener('blur', () => formatarMoedaBlur(editValorInput)); // Aplica formatação final ao perder o foco
+        }
+        
+        // Botões de edição na tabela
+        document.querySelectorAll('.edit-entrada-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const entradaId = this.getAttribute('data-entrada-id');
+                const entradaNome = this.getAttribute('data-entrada-nome');
+                const entradaValor = this.getAttribute('data-entrada-valor');
+                const entradaData = this.getAttribute('data-entrada-data');
+                const entradaLocal = this.getAttribute('data-entrada-local');
+                const entradaFormaRecebimento = this.getAttribute('data-entrada-forma-recebimento');
+                const entradaContaBancaria = this.getAttribute('data-entrada-conta-bancaria');
+                const entradaObservacao = this.getAttribute('data-entrada-observacao');
+                
+                // Preencher o formulário de edição
+                document.getElementById('edit_entrada_id').value = entradaId;
+                document.getElementById('edit_nome').value = entradaNome;
+                
+                // Formatar o valor para o padrão brasileiro
+                const valorFormatado = parseFloat(entradaValor).toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                document.getElementById('edit_valor').value = valorFormatado;
+                
+                document.getElementById('edit_data').value = entradaData;
+                document.getElementById('edit_local').value = entradaLocal;
+                document.getElementById('edit_forma_recebimento').value = entradaFormaRecebimento;
+                document.getElementById('edit_conta_bancaria').value = entradaContaBancaria;
+                document.getElementById('edit_observacao').value = entradaObservacao;
+                
+                // Definir a action do formulário
+                editEntradaFormModal.action = `/entradas/${entradaId}/editar/`;
+                
+                showModal(editEntradaModal);
+            });
+        });
+        
+        // Botões de exclusão na tabela
+        document.querySelectorAll('.delete-entrada-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const entradaId = this.getAttribute('data-entrada-id');
+                const entradaNome = this.getAttribute('data-entrada-nome');
+                
+                deleteEntradaModalTitle.textContent = 'Confirmar Exclusão';
+                deleteEntradaModalMessage.textContent = `Tem certeza de que deseja excluir a entrada "${entradaNome}"?`;
+                deleteEntradaForm.action = `/entradas/${entradaId}/excluir/`;
+                
+                showModal(deleteEntradaModal);
+            });
+        });
+        
+        // Envio do formulário de adição via AJAX
+        if (entradaFormModal) {
+            entradaFormModal.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const submitBtn = entradaFormModal.querySelector('#saveEntradaBtn');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Salvando...';
+                
+                const formData = new FormData(entradaFormModal);
+                formData.set('valor', converterParaDecimal(valorInput.value));
+                
+                fetch(entradaFormModal.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    return response.json().then(errorData => {
+                        throw errorData;
+                    });
+                })
+                .then(data => {
+                    if (data.success) {
+                        hideModal(entradaModal);
+                        showSuccessMessage('Entrada adicionada com sucesso!');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        // Exibir erros de validação
+                        displayFormErrors(entradaFormModal, data.errors);
+                    }
+                })
+                .catch(errors => {
+                    console.error('Erro:', errors);
+                    displayFormErrors(entradaFormModal, errors);
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                });
+            });
+        }
+        
+        // Envio do formulário de edição via AJAX
+        if (editEntradaFormModal) {
+            editEntradaFormModal.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const submitBtn = editEntradaFormModal.querySelector('#updateEntradaBtn');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Atualizando...';
+                
+                const formData = new FormData(editEntradaFormModal);
+                formData.set('valor', converterParaDecimal(editValorInput.value));
+                
+                fetch(editEntradaFormModal.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    return response.json().then(errorData => {
+                        throw errorData;
+                    });
+                })
+                .then(data => {
+                    if (data.success) {
+                        hideModal(editEntradaModal);
+                        showSuccessMessage('Entrada atualizada com sucesso!');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        displayFormErrors(editEntradaFormModal, data.errors);
+                    }
+                })
+                .catch(errors => {
+                    console.error('Erro:', errors);
+                    displayFormErrors(editEntradaFormModal, errors);
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                });
+            });
+        }
+        
+        // Envio do formulário de exclusão via AJAX
+        if (deleteEntradaForm) {
+            deleteEntradaForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const submitBtn = deleteEntradaForm.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Excluindo...';
+                
+                fetch(this.action, {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    return response.json().then(errorData => {
+                        throw errorData;
+                    });
+                })
+                .then(data => {
+                    if (data.success) {
+                        hideModal(deleteEntradaModal);
+                        showSuccessMessage('Entrada excluída com sucesso!');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        displayFormErrors(deleteEntradaForm, data.errors);
+                    }
+                })
+                .catch(errors => {
+                    console.error('Erro:', errors);
+                    displayFormErrors(deleteEntradaForm, errors);
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                });
+            });
+        }
+    });
+</script>
 {% endblock %}

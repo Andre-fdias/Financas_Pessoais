@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-=k1bo*06s4ybe5&owekege5sh!@0@anq)82kupm)6h*__7%e+w')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = True 
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=lambda v: [s.strip() for s in v.split(',')])
 
@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'tailwind',
     'theme',
     'django_htmx',
+    'widget_tweaks',
+   
 ]
 
 TAILWIND_APP_NAME = 'theme'
@@ -69,13 +71,14 @@ ROOT_URLCONF = 'financas.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                
             ],
         },
     },
@@ -133,6 +136,10 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Mídia (Arquivos enviados pelos usuários)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -151,3 +158,67 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
+
+
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG', # Altere para DEBUG para ver todos os logs, incluindo os do forms.py
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'core': { # Adicione um logger para seu aplicativo 'core'
+            'handlers': ['console'],
+            'level': 'DEBUG', # Defina como DEBUG para ver os logs do seu forms.py
+            'propagate': False,
+        },
+    },
+}
+
+
+# ================================================================
+# SEGURANÇA E SESSÕES
+# ================================================================
+
+# Configurações de segurança para HTTPS e cookies seguros
+# Apenas ative em produção, onde você usa HTTPS
+# if not DEBUG:
+#SESSION_COOKIE_SECURE = True
+#CSRF_COOKIE_SECURE = True
+#SECURE_SSL_REDIRECT = True
+#SECURE_HSTS_SECONDS = 3600  # Aumente para 31536000 (1 ano) em produção
+#SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+#SECURE_HSTS_PRELOAD = True
+#SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Políticas de sessão
+# Expira a sessão quando o usuário fecha o navegador
+#SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+# Define a idade máxima do cookie de sessão (em segundos)
+#SESSION_COOKIE_AGE = 60 * 60 * 2  # 2 horas em segundos = 7200 segundos
+# Redireciona para login após inatividade (opcional)
+#SESSION_SAVE_EVERY_REQUEST = True
